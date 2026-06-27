@@ -13,6 +13,7 @@ TOKEN = os.getenv("TOKEN", "")
 MASTER_KEY = os.getenv("MASTER_KEY", "default123")
 OWNER_ID = int(os.getenv("OWNER_ID", "453561961"))
 OWNER_USERNAME = "@Kusainov10"
+CARD_NUMBER = "2200 7001 5852 1475"
 FREE_DAYS = 7
 
 bot = telebot.TeleBot(TOKEN)
@@ -63,7 +64,10 @@ LANG = {
         "activated": "✅ {uid} активирован на {days} дн.",
         "notify_activated": "✅ Подписка продлена на {days} дней!",
         "users_list": "👥 *Пользователи:*\n\n",
-        "subscription_info": "💳 Подписка: *{days}* дн.\n\nДля продления: {owner}",
+        "subscription_info": "💳 *Подписка Market Pulse*\n\nОсталось: *{days}* дн.\n\nВыберите тариф для продления:",
+        "tariff_30": "📅 30 дней — 299₽\n\n💳 Карта: `{card}`\n\n⚠️ После перевода отправьте скриншот чека и ваш ID владельцу: {owner}",
+        "tariff_90": "📅 90 дней — 699₽\n\n💳 Карта: `{card}`\n\n⚠️ После перевода отправьте скриншот чека и ваш ID владельцу: {owner}",
+        "tariff_365": "📅 365 дней — 1999₽\n\n💳 Карта: `{card}`\n\n⚠️ После перевода отправьте скриншот чека и ваш ID владельцу: {owner}",
         "btn_price": "📊 Цена", "btn_stocks": "📋 Акции",
         "btn_gainers": "🚀 Рост", "btn_losers": "📉 Падение",
         "btn_potential": "🔮 Потенциал", "btn_news": "📰 Новости",
@@ -73,6 +77,10 @@ LANG = {
         "btn_help": "ℹ️ Помощь", "btn_lang": "🌐 Язык",
         "btn_crypto_price": "🪙 Курс", "btn_crypto_list": "📋 Список",
         "btn_crypto_potential": "🔮 Потенциал", "btn_back": "🔙 Назад",
+        "btn_tariff_30": "📅 30 дней — 299₽",
+        "btn_tariff_90": "📅 90 дней — 699₽",
+        "btn_tariff_365": "📅 365 дней — 1999₽",
+        "btn_back_sub": "🔙 Назад",
     },
     "en": {
         "name": "🇬🇧 English", "choose": "🌐 Choose language:",
@@ -112,7 +120,10 @@ LANG = {
         "activated": "✅ {uid} activated for {days} days.",
         "notify_activated": "✅ Subscription extended for {days} days!",
         "users_list": "👥 *Users:*\n\n",
-        "subscription_info": "💳 Subscription: *{days}* days\n\nContact: {owner}",
+        "subscription_info": "💳 *Market Pulse Subscription*\n\nLeft: *{days}* days\n\nChoose a plan:",
+        "tariff_30": "📅 30 days — 299₽\n\n💳 Card: `{card}`\n\n⚠️ After payment, send screenshot + your ID to: {owner}",
+        "tariff_90": "📅 90 days — 699₽\n\n💳 Card: `{card}`\n\n⚠️ After payment, send screenshot + your ID to: {owner}",
+        "tariff_365": "📅 365 days — 1999₽\n\n💳 Card: `{card}`\n\n⚠️ After payment, send screenshot + your ID to: {owner}",
         "btn_price": "📊 Price", "btn_stocks": "📋 Stocks",
         "btn_gainers": "🚀 Gainers", "btn_losers": "📉 Losers",
         "btn_potential": "🔮 Potential", "btn_news": "📰 News",
@@ -122,6 +133,10 @@ LANG = {
         "btn_help": "ℹ️ Help", "btn_lang": "🌐 Language",
         "btn_crypto_price": "🪙 Price", "btn_crypto_list": "📋 List",
         "btn_crypto_potential": "🔮 Potential", "btn_back": "🔙 Back",
+        "btn_tariff_30": "📅 30 days — 299₽",
+        "btn_tariff_90": "📅 90 days — 699₽",
+        "btn_tariff_365": "📅 365 days — 1999₽",
+        "btn_back_sub": "🔙 Back",
     },
     "zh": {
         "name": "🇨🇳 中文", "choose": "🌐 选择语言：",
@@ -147,7 +162,7 @@ LANG = {
         "news": "📰 *新闻：*\n\n",
         "no_news": "😴 无波动。",
         "no_candidates": "🔮 无候选。",
-        "help": "ℹ️ Market Pulse\n\n📊 价格 | 🪙 加密货币 | 📈 RSI | 📉 图表\n🔔 警报 | 👤 个人 | 🌐 语言 | 💳 订阅",
+        "help": "ℹ️ Market Pulse",
         "enter_ticker": "输入代码：",
         "wrong_ticker": "❌ 无效代码",
         "use_buttons": "使用菜单。",
@@ -161,7 +176,10 @@ LANG = {
         "activated": "✅ {uid} 已激活 {days} 天。",
         "notify_activated": "✅ 订阅已延长 {days} 天！",
         "users_list": "👥 *用户：*\n\n",
-        "subscription_info": "💳 订阅: *{days}* 天\n\n联系: {owner}",
+        "subscription_info": "💳 *订阅*\n\n剩余：*{days}* 天\n\n选择计划：",
+        "tariff_30": "📅 30天 — 299₽\n\n💳 卡号: `{card}`\n\n⚠️ 付款后发送截图+ID至: {owner}",
+        "tariff_90": "📅 90天 — 699₽\n\n💳 卡号: `{card}`\n\n⚠️ 付款后发送截图+ID至: {owner}",
+        "tariff_365": "📅 365天 — 1999₽\n\n💳 卡号: `{card}`\n\n⚠️ 付款后发送截图+ID至: {owner}",
         "btn_price": "📊 价格", "btn_stocks": "📋 股票",
         "btn_gainers": "🚀 涨幅", "btn_losers": "📉 跌幅",
         "btn_potential": "🔮 潜力", "btn_news": "📰 新闻",
@@ -171,6 +189,10 @@ LANG = {
         "btn_help": "ℹ️ 帮助", "btn_lang": "🌐 语言",
         "btn_crypto_price": "🪙 价格", "btn_crypto_list": "📋 列表",
         "btn_crypto_potential": "🔮 潜力", "btn_back": "🔙 返回",
+        "btn_tariff_30": "📅 30天 — 299₽",
+        "btn_tariff_90": "📅 90天 — 699₽",
+        "btn_tariff_365": "📅 365天 — 1999₽",
+        "btn_back_sub": "🔙 返回",
     },
     "fr": {
         "name": "🇫🇷 Français", "choose": "🌐 Choisissez la langue :",
@@ -196,7 +218,7 @@ LANG = {
         "news": "📰 *Actualités :*\n\n",
         "no_news": "😴 Pas de mouvements.",
         "no_candidates": "🔮 Aucun candidat.",
-        "help": "ℹ️ Market Pulse\n\n📊 Prix | 🪙 Crypto | 📈 RSI | 📉 Graphique\n🔔 Alertes | 👤 Profil | 🌐 Langue | 💳 Abonnement",
+        "help": "ℹ️ Market Pulse",
         "enter_ticker": "Entrez le ticker :",
         "wrong_ticker": "❌ Invalide",
         "use_buttons": "Utilisez le menu.",
@@ -210,7 +232,10 @@ LANG = {
         "activated": "✅ {uid} activé {days} jours.",
         "notify_activated": "✅ Abonnement prolongé de {days} jours !",
         "users_list": "👥 *Utilisateurs :*\n\n",
-        "subscription_info": "💳 Abonnement: *{days}* jours\n\nContact: {owner}",
+        "subscription_info": "💳 *Abonnement*\n\nRestant : *{days}* jours\n\nChoisissez un plan :",
+        "tariff_30": "📅 30 jours — 299₽\n\n💳 Carte: `{card}`\n\n⚠️ Envoyez la capture + votre ID à: {owner}",
+        "tariff_90": "📅 90 jours — 699₽\n\n💳 Carte: `{card}`\n\n⚠️ Envoyez la capture + votre ID à: {owner}",
+        "tariff_365": "📅 365 jours — 1999₽\n\n💳 Carte: `{card}`\n\n⚠️ Envoyez la capture + votre ID à: {owner}",
         "btn_price": "📊 Prix", "btn_stocks": "📋 Actions",
         "btn_gainers": "🚀 Hausses", "btn_losers": "📉 Baisses",
         "btn_potential": "🔮 Potentiel", "btn_news": "📰 Actualités",
@@ -220,6 +245,10 @@ LANG = {
         "btn_help": "ℹ️ Aide", "btn_lang": "🌐 Langue",
         "btn_crypto_price": "🪙 Prix", "btn_crypto_list": "📋 Liste",
         "btn_crypto_potential": "🔮 Potentiel", "btn_back": "🔙 Retour",
+        "btn_tariff_30": "📅 30 jours — 299₽",
+        "btn_tariff_90": "📅 90 jours — 699₽",
+        "btn_tariff_365": "📅 365 jours — 1999₽",
+        "btn_back_sub": "🔙 Retour",
     },
     "de": {
         "name": "🇩🇪 Deutsch", "choose": "🌐 Sprache wählen:",
@@ -245,7 +274,7 @@ LANG = {
         "news": "📰 *Nachrichten:*\n\n",
         "no_news": "😴 Keine Bewegungen.",
         "no_candidates": "🔮 Keine Kandidaten.",
-        "help": "ℹ️ Market Pulse\n\n📊 Preis | 🪙 Krypto | 📈 RSI | 📉 Chart\n🔔 Alarme | 👤 Profil | 🌐 Sprache | 💳 Abo",
+        "help": "ℹ️ Market Pulse",
         "enter_ticker": "Ticker:",
         "wrong_ticker": "❌ Ungültig",
         "use_buttons": "Menü verwenden.",
@@ -259,7 +288,10 @@ LANG = {
         "activated": "✅ {uid} aktiviert {days} Tage.",
         "notify_activated": "✅ Abo um {days} Tage verlängert!",
         "users_list": "👥 *Benutzer:*\n\n",
-        "subscription_info": "💳 Abo: *{days}* Tage\n\nKontakt: {owner}",
+        "subscription_info": "💳 *Abo*\n\nRest: *{days}* Tage\n\nPlan wählen:",
+        "tariff_30": "📅 30 Tage — 299₽\n\n💳 Karte: `{card}`\n\n⚠️ Screenshot + ID an: {owner}",
+        "tariff_90": "📅 90 Tage — 699₽\n\n💳 Karte: `{card}`\n\n⚠️ Screenshot + ID an: {owner}",
+        "tariff_365": "📅 365 Tage — 1999₽\n\n💳 Karte: `{card}`\n\n⚠️ Screenshot + ID an: {owner}",
         "btn_price": "📊 Preis", "btn_stocks": "📋 Aktien",
         "btn_gainers": "🚀 Gewinner", "btn_losers": "📉 Verlierer",
         "btn_potential": "🔮 Potenzial", "btn_news": "📰 Nachrichten",
@@ -269,6 +301,10 @@ LANG = {
         "btn_help": "ℹ️ Hilfe", "btn_lang": "🌐 Sprache",
         "btn_crypto_price": "🪙 Preis", "btn_crypto_list": "📋 Liste",
         "btn_crypto_potential": "🔮 Potenzial", "btn_back": "🔙 Zurück",
+        "btn_tariff_30": "📅 30 Tage — 299₽",
+        "btn_tariff_90": "📅 90 Tage — 699₽",
+        "btn_tariff_365": "📅 365 Tage — 1999₽",
+        "btn_back_sub": "🔙 Zurück",
     },
     "es": {
         "name": "🇪🇸 Español", "choose": "🌐 Seleccione idioma:",
@@ -294,7 +330,7 @@ LANG = {
         "news": "📰 *Noticias:*\n\n",
         "no_news": "😴 Sin movimientos.",
         "no_candidates": "🔮 Sin candidatos.",
-        "help": "ℹ️ Market Pulse\n\n📊 Precio | 🪙 Cripto | 📈 RSI | 📉 Gráfico\n🔔 Alertas | 👤 Perfil | 🌐 Idioma | 💳 Suscripción",
+        "help": "ℹ️ Market Pulse",
         "enter_ticker": "Ingrese ticker:",
         "wrong_ticker": "❌ Inválido",
         "use_buttons": "Use menú.",
@@ -308,7 +344,10 @@ LANG = {
         "activated": "✅ {uid} activado {days} días.",
         "notify_activated": "✅ ¡Suscripción extendida {days} días!",
         "users_list": "👥 *Usuarios:*\n\n",
-        "subscription_info": "💳 Suscripción: *{days}* días\n\nContacto: {owner}",
+        "subscription_info": "💳 *Suscripción*\n\nRestante: *{days}* días\n\nElija un plan:",
+        "tariff_30": "📅 30 días — 299₽\n\n💳 Tarjeta: `{card}`\n\n⚠️ Envíe captura + su ID a: {owner}",
+        "tariff_90": "📅 90 días — 699₽\n\n💳 Tarjeta: `{card}`\n\n⚠️ Envíe captura + su ID a: {owner}",
+        "tariff_365": "📅 365 días — 1999₽\n\n💳 Tarjeta: `{card}`\n\n⚠️ Envíe captura + su ID a: {owner}",
         "btn_price": "📊 Precio", "btn_stocks": "📋 Acciones",
         "btn_gainers": "🚀 Ganancias", "btn_losers": "📉 Pérdidas",
         "btn_potential": "🔮 Potencial", "btn_news": "📰 Noticias",
@@ -318,6 +357,10 @@ LANG = {
         "btn_help": "ℹ️ Ayuda", "btn_lang": "🌐 Idioma",
         "btn_crypto_price": "🪙 Precio", "btn_crypto_list": "📋 Lista",
         "btn_crypto_potential": "🔮 Potencial", "btn_back": "🔙 Volver",
+        "btn_tariff_30": "📅 30 días — 299₽",
+        "btn_tariff_90": "📅 90 días — 699₽",
+        "btn_tariff_365": "📅 365 días — 1999₽",
+        "btn_back_sub": "🔙 Volver",
     },
     "it": {
         "name": "🇮🇹 Italiano", "choose": "🌐 Seleziona lingua:",
@@ -343,7 +386,7 @@ LANG = {
         "news": "📰 *Notizie:*\n\n",
         "no_news": "😴 Nessun movimento.",
         "no_candidates": "🔮 Nessun candidato.",
-        "help": "ℹ️ Market Pulse\n\n📊 Prezzo | 🪙 Cripto | 📈 RSI | 📉 Grafico\n🔔 Avvisi | 👤 Profilo | 🌐 Lingua | 💳 Abbonamento",
+        "help": "ℹ️ Market Pulse",
         "enter_ticker": "Inserisci ticker:",
         "wrong_ticker": "❌ Non valido",
         "use_buttons": "Usa menu.",
@@ -357,7 +400,10 @@ LANG = {
         "activated": "✅ {uid} attivato {days} giorni.",
         "notify_activated": "✅ Abbonamento esteso di {days} giorni!",
         "users_list": "👥 *Utenti:*\n\n",
-        "subscription_info": "💳 Abbonamento: *{days}* giorni\n\nContatto: {owner}",
+        "subscription_info": "💳 *Abbonamento*\n\nRestante: *{days}* giorni\n\nScegli un piano:",
+        "tariff_30": "📅 30 giorni — 299₽\n\n💳 Carta: `{card}`\n\n⚠️ Invia screenshot + tuo ID a: {owner}",
+        "tariff_90": "📅 90 giorni — 699₽\n\n💳 Carta: `{card}`\n\n⚠️ Invia screenshot + tuo ID a: {owner}",
+        "tariff_365": "📅 365 giorni — 1999₽\n\n💳 Carta: `{card}`\n\n⚠️ Invia screenshot + tuo ID a: {owner}",
         "btn_price": "📊 Prezzo", "btn_stocks": "📋 Azioni",
         "btn_gainers": "🚀 Migliori", "btn_losers": "📉 Peggiori",
         "btn_potential": "🔮 Potenziale", "btn_news": "📰 Notizie",
@@ -367,6 +413,10 @@ LANG = {
         "btn_help": "ℹ️ Aiuto", "btn_lang": "🌐 Lingua",
         "btn_crypto_price": "🪙 Prezzo", "btn_crypto_list": "📋 Lista",
         "btn_crypto_potential": "🔮 Potenziale", "btn_back": "🔙 Indietro",
+        "btn_tariff_30": "📅 30 giorni — 299₽",
+        "btn_tariff_90": "📅 90 giorni — 699₽",
+        "btn_tariff_365": "📅 365 giorni — 1999₽",
+        "btn_back_sub": "🔙 Indietro",
     },
 }
 
@@ -532,7 +582,7 @@ def cmd_backup(message):
         bot.reply_to(message, lang["backup_ok"])
     except: bot.reply_to(message, lang["backup_fail"])
 
-# ─── ОБЫЧНЫЕ КОМАНДЫ ────────────────────────────────────
+# ─── СТАРТ ──────────────────────────────────────────────
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     uid = message.from_user.id
@@ -600,6 +650,7 @@ def callback_lang(call):
     else:
         bot.send_message(uid, lang["welcome_no_access"].format(owner=OWNER_USERNAME), parse_mode="Markdown")
 
+# ─── КОМАНДЫ ────────────────────────────────────────────
 @bot.message_handler(commands=['price'])
 def send_price(message):
     if not is_allowed(message.from_user.id): return
@@ -691,6 +742,7 @@ def cmd_lang(message):
     lang = get_lang(message)
     bot.send_message(message.chat.id, lang["choose"], reply_markup=lang_menu())
 
+# ─── КНОПКИ ──────────────────────────────────────────────
 @bot.message_handler(func=lambda m: True)
 def handle_buttons(message):
     uid = message.from_user.id
@@ -728,7 +780,11 @@ def handle_buttons(message):
     elif t == lang["btn_back"]: bot.send_message(uid, lang["main_menu"], reply_markup=main_menu(lang))
     elif t == lang["btn_alerts"]: cmd_alerts(message)
     elif t == lang["btn_profile"]: cmd_me(message)
-    elif t == lang["btn_subscribe"]: bot.send_message(uid, lang["subscription_info"].format(days=days_left(uid), owner=OWNER_USERNAME), parse_mode="Markdown")
+    elif t == lang["btn_subscribe"]: show_subscription_menu(message, lang)
+    elif t == lang["btn_tariff_30"]: show_tariff(message, lang, 30, 299)
+    elif t == lang["btn_tariff_90"]: show_tariff(message, lang, 90, 699)
+    elif t == lang["btn_tariff_365"]: show_tariff(message, lang, 365, 1999)
+    elif t == lang["btn_back_sub"]: bot.send_message(uid, lang["main_menu"], reply_markup=main_menu(lang))
     elif t == lang["btn_help"]: bot.send_message(uid, lang["help"], parse_mode="Markdown", reply_markup=main_menu(lang))
     else:
         try:
@@ -738,6 +794,26 @@ def handle_buttons(message):
             bot.send_message(uid, lang["price"].format(ticker=tick, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
         except: bot.reply_to(message, lang["use_buttons"], reply_markup=main_menu(lang))
 
+def subscription_menu(lang):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(
+        types.KeyboardButton(lang["btn_tariff_30"]),
+        types.KeyboardButton(lang["btn_tariff_90"]),
+        types.KeyboardButton(lang["btn_tariff_365"]),
+        types.KeyboardButton(lang["btn_back_sub"])
+    )
+    return markup
+
+def show_subscription_menu(message, lang):
+    days = days_left(message.from_user.id)
+    bot.send_message(message.chat.id, lang["subscription_info"].format(days=days), parse_mode="Markdown", reply_markup=subscription_menu(lang))
+
+def show_tariff(message, lang, days, price):
+    key = f"tariff_{days}"
+    text = lang[key].format(card=CARD_NUMBER, owner=OWNER_USERNAME)
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=subscription_menu(lang))
+
+# ─── ОБРАБОТЧИКИ ────────────────────────────────────────
 def process_ticker(message, lang):
     try:
         t = message.text.upper()
