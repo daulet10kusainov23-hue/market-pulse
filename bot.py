@@ -25,7 +25,13 @@ USERS_DB = DB.table("users")
 LANG_DB = DB.table("languages")
 
 WATCHLIST = ["AAPL", "TSLA", "GOOGL", "MSFT", "AMZN", "META", "NVDA", "NFLX", "AMD", "INTC"]
-CRYPTO_LIST = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "DOTUSDT"]
+CRYPTO_LIST = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "DOTUSDT"]
+
+US_STOCKS = {"🍎 Apple": "AAPL", "🚗 Tesla": "TSLA", "🔍 Google": "GOOGL", "📦 Amazon": "AMZN", "🪟 Microsoft": "MSFT", "🎮 NVIDIA": "NVDA", "👤 Meta": "META", "🎬 Netflix": "NFLX", "💻 AMD": "AMD", "🔷 Intel": "INTC", "🏦 JPMorgan": "JPM", "💊 Pfizer": "PFE", "🛢 Exxon": "XOM", "📱 Adobe": "ADBE", "☁️ Salesforce": "CRM"}
+RU_STOCKS = {"🏦 Сбер": "SBER.ME", "⛽️ Газпром": "GAZP.ME", "🛢 Лукойл": "LKOH.ME", "🔍 Яндекс": "YNDX.ME", "💰 ВТБ": "VTBR.ME", "🥇 Норникель": "GMKN.ME", "🛢 Роснефть": "ROSN.ME", "🏪 Магнит": "MGNT.ME", "⛽️ Сургутнефтегаз": "SNGS.ME", "⚡️ Новатэк": "NVTK.ME"}
+CN_STOCKS = {"🛒 Alibaba": "BABA", "🔍 Baidu": "BIDU", "🚗 NIO": "NIO", "📦 JD.com": "JD", "🛍 Pinduoduo": "PDD", "🎮 Tencent": "TCEHY"}
+EU_STOCKS = {"👜 LVMH": "MC.PA", "💻 ASML": "ASML", "📊 SAP": "SAP", "⚙️ Siemens": "SIEGY", "🚗 BMW": "BMWYY", "✈️ Airbus": "EADSY", "🛡 Allianz": "ALIZF"}
+INDICES = {"🇺🇸 S&P 500": "SPY", "📊 NASDAQ": "QQQ", "🏛 Dow Jones": "DIA", "🇷🇺 MOEX": "IMOEX.ME", "🇨🇳 Shanghai": "FXI", "🇪🇺 Euro Stoxx 50": "FEZ"}
 
 LANG = {
     "ru": {
@@ -36,7 +42,7 @@ LANG = {
         "welcome_trial": "👋 *Привет, {name}!*\n🎁 Пробный период: {days} дн.",
         "welcome_back": "👋 *С возвращением, {name}!*\n💳 Подписка: *{days}* дн.\nЯзык: {lang_name}",
         "profile": "👤 ID: `{uid}`\nПодписка: *{days}* дн.\nЯзык: {lang_name}\nВладелец: {owner}",
-        "price": "*{ticker}*\n💰 ${price:.2f} {emoji} {change:+.2f}%",
+        "price": "*{name}*\n💰 ${price:.2f} {emoji} {change:+.2f}%",
         "rsi": "📈 *RSI {ticker}*\n💰 ${price:.2f}\n📊 RSI: *{rsi}* {signal}",
         "chart": "📉 *{ticker}*\n💰 ${price:.2f}\n[📊 TradingView]({link})",
         "alert_set": "🔔 {ticker} на ${target:.2f} установлен!",
@@ -57,15 +63,19 @@ LANG = {
         "notify_activated": "✅ Подписка продлена на {days} дней!",
         "users_list": "👥 *Пользователи:*\n\n",
         "subscription_info": "💳 *Подписка Market Pulse*\n\nОсталось: *{days}* дн.\n\nВыберите способ оплаты:",
-        "tariff_30_card": "📅 *30 дней — 299₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 299₽ на карту\n2. Комментарий: *«Market Pulse 30 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
-        "tariff_90_card": "📅 *90 дней — 699₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 699₽ на карту\n2. Комментарий: *«Market Pulse 90 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
-        "tariff_365_card": "📅 *365 дней — 1999₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 1999₽ на карту\n2. Комментарий: *«Market Pulse 365 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
-        "tariff_30_usdt": "🪙 *30 дней — 10 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 10 USDT\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}",
-        "tariff_90_usdt": "🪙 *90 дней — 25 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 25 USDT\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}",
-        "tariff_365_usdt": "🪙 *365 дней — 70 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 70 USDT\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}",
-        "tariff_30_ton": "💎 *30 дней — 10 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Инструкция:*\n1. Откройте @wallet в Telegram\n2. Отправьте 10 TON на адрес выше\n3. Отправьте скриншот и ваш ID → {owner}",
-        "tariff_90_ton": "💎 *90 дней — 25 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Инструкция:*\n1. Откройте @wallet в Telegram\n2. Отправьте 25 TON на адрес выше\n3. Отправьте скриншот и ваш ID → {owner}",
-        "tariff_365_ton": "💎 *365 дней — 70 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Инструкция:*\n1. Откройте @wallet в Telegram\n2. Отправьте 70 TON на адрес выше\n3. Отправьте скриншот и ваш ID → {owner}",
+        "market_summary": "📊 *Сводка рынка*\n\n",
+        "hype_of_day": "🚀 *Хайп дня*\n\n",
+        "signal_of_day": "🎯 *Сигнал дня*\n\n",
+        "top_market_title": "🔥 *Топ рынка*\n\nВыберите раздел:",
+        "btn_top_market": "🔥 Топ рынка",
+        "btn_market_summary": "📊 Сводка рынка",
+        "btn_hype_day": "🚀 Хайп дня",
+        "btn_signal_day": "🎯 Сигнал дня",
+        "btn_us_stocks": "🇺🇸 Акции США",
+        "btn_ru_stocks": "🇷🇺 Акции РФ",
+        "btn_cn_stocks": "🇨🇳 Акции Китая",
+        "btn_eu_stocks": "🇪🇺 Акции Европы",
+        "btn_crypto_top": "🪙 Крипто-топ",
         "btn_price": "📊 Цена", "btn_stocks": "📋 Акции",
         "btn_gainers": "🚀 Рост", "btn_losers": "📉 Падение",
         "btn_potential": "🔮 Потенциал", "btn_news": "📰 Новости",
@@ -88,11 +98,91 @@ LANG = {
         "ton_tariff_30": "💎 30 дн. — 10 TON",
         "ton_tariff_90": "💎 90 дн. — 25 TON",
         "ton_tariff_365": "💎 365 дн. — 70 TON",
+        "tariff_30_card": "📅 *30 дней — 299₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 299₽ на карту\n2. Комментарий: *«Market Pulse 30 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
+        "tariff_90_card": "📅 *90 дней — 699₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 699₽ на карту\n2. Комментарий: *«Market Pulse 90 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
+        "tariff_365_card": "📅 *365 дней — 1999₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 1999₽ на карту\n2. Комментарий: *«Market Pulse 365 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
+        "tariff_30_usdt": "🪙 *30 дней — 10 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 10 USDT\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}",
+        "tariff_90_usdt": "🪙 *90 дней — 25 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 25 USDT\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}",
+        "tariff_365_usdt": "🪙 *365 дней — 70 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 70 USDT\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}",
+        "tariff_30_ton": "💎 *30 дней — 10 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Инструкция:*\n1. Откройте @wallet в Telegram\n2. Отправьте 10 TON на адрес выше\n3. Отправьте скриншот и ваш ID → {owner}",
+        "tariff_90_ton": "💎 *90 дней — 25 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Инструкция:*\n1. Откройте @wallet в Telegram\n2. Отправьте 25 TON на адрес выше\n3. Отправьте скриншот и ваш ID → {owner}",
+        "tariff_365_ton": "💎 *365 дней — 70 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Инструкция:*\n1. Откройте @wallet в Telegram\n2. Отправьте 70 TON на адрес выше\n3. Отправьте скриншот и ваш ID → {owner}",
+    },
+    "en": {
+        "name": "🇬🇧 English", "choose": "🌐 Choose language:",
+        "lang_set": "Language: English", "sub_expired": "⛔ Subscription expired.",
+        "wrong_key": "⛔ Invalid key.",
+        "welcome_no_access": "👋 *Market Pulse*\n\nSubscription access.\n📱 {owner}",
+        "welcome_trial": "👋 *Hello, {name}!*\n🎁 Trial: {days} days.",
+        "welcome_back": "👋 *Welcome back, {name}!*\n💳 Subscription: *{days}* days\nLanguage: {lang_name}",
+        "profile": "👤 ID: `{uid}`\nSubscription: *{days}* days\nLanguage: {lang_name}\nOwner: {owner}",
+        "price": "*{name}*\n💰 ${price:.2f} {emoji} {change:+.2f}%",
+        "rsi": "📈 *RSI {ticker}*\n💰 ${price:.2f}\n📊 RSI: *{rsi}* {signal}",
+        "chart": "📉 *{ticker}*\n💰 ${price:.2f}\n[📊 TradingView]({link})",
+        "alert_set": "🔔 {ticker} at ${target:.2f} set!",
+        "no_alerts": "🔔 No alerts.", "alerts_list": "🔔 *Alerts:*\n\n",
+        "del_alert": "✅ {ticker} removed",
+        "stock_list": "📋 *Stocks:*\n\n", "crypto_list": "🪙 *Crypto:*\n\n",
+        "gainers": "🚀 *Gainers:*\n\n", "losers": "📉 *Losers:*\n\n",
+        "potential": "🔮 *Potential:*\n\n", "crypto_potential": "🔮 *Crypto Potential:*\n\n",
+        "news": "📰 *News:*\n\n", "no_news": "😴 No movements.",
+        "no_candidates": "🔮 No candidates.",
+        "help": "ℹ️ Market Pulse\n\n📊 Price | 🪙 Crypto | 📈 RSI | 📉 Chart\n🔔 Alerts | 👤 Profile | 🌐 Language | 💳 Subscribe",
+        "enter_ticker": "Enter ticker:", "wrong_ticker": "❌ Invalid ticker",
+        "use_buttons": "Use menu.", "main_menu": "Main menu",
+        "crypto_menu": "🪙 Crypto", "searching_news": "📰 Searching...",
+        "backup_ok": "✅ Backup created.", "backup_fail": "❌ Failed.",
+        "log_empty": "Log empty.", "no_users": "No users.",
+        "activated": "✅ {uid} activated for {days} days.",
+        "notify_activated": "✅ Subscription extended for {days} days!",
+        "users_list": "👥 *Users:*\n\n",
+        "subscription_info": "💳 *Subscription*\n\nLeft: *{days}* days\n\nChoose payment method:",
+        "market_summary": "📊 *Market Summary*\n\n",
+        "hype_of_day": "🚀 *Hype of the Day*\n\n",
+        "signal_of_day": "🎯 *Signal of the Day*\n\n",
+        "top_market_title": "🔥 *Top Market*\n\nSelect section:",
+        "btn_top_market": "🔥 Top Market",
+        "btn_market_summary": "📊 Market Summary",
+        "btn_hype_day": "🚀 Hype of Day",
+        "btn_signal_day": "🎯 Signal of Day",
+        "btn_us_stocks": "🇺🇸 US Stocks",
+        "btn_ru_stocks": "🇷🇺 Russian Stocks",
+        "btn_cn_stocks": "🇨🇳 China Stocks",
+        "btn_eu_stocks": "🇪🇺 Europe Stocks",
+        "btn_crypto_top": "🪙 Crypto Top",
+        "btn_price": "📊 Price", "btn_stocks": "📋 Stocks",
+        "btn_gainers": "🚀 Gainers", "btn_losers": "📉 Losers",
+        "btn_potential": "🔮 Potential", "btn_news": "📰 News",
+        "btn_rsi": "📈 RSI", "btn_chart": "📉 Chart",
+        "btn_crypto": "🪙 Crypto", "btn_alerts": "🔔 Alerts",
+        "btn_profile": "👤 Profile", "btn_subscribe": "💳 Subscribe",
+        "btn_help": "ℹ️ Help", "btn_lang": "🌐 Language",
+        "btn_crypto_price": "🪙 Price", "btn_crypto_list": "📋 List",
+        "btn_crypto_potential": "🔮 Potential", "btn_back": "🔙 Back",
+        "btn_tariff_30": "📅 30 d. — 299₽",
+        "btn_tariff_90": "📅 90 d. — 699₽",
+        "btn_tariff_365": "📅 365 d. — 1999₽",
+        "btn_card_pay": "💳 Bank Card (RF)",
+        "btn_crypto_pay": "🪙 Crypto (USDT)",
+        "btn_ton_pay": "💎 Telegram Wallet (TON)",
+        "btn_back_sub": "🔙 Back",
+        "crypto_tariff_30": "🪙 30 d. — 10 USDT",
+        "crypto_tariff_90": "🪙 90 d. — 25 USDT",
+        "crypto_tariff_365": "🪙 365 d. — 70 USDT",
+        "ton_tariff_30": "💎 30 d. — 10 TON",
+        "ton_tariff_90": "💎 90 d. — 25 TON",
+        "ton_tariff_365": "💎 365 d. — 70 TON",
+        "tariff_30_card": "📅 *30 days — 299₽*\n\n💳 Card: `{card}`\n\n⚠️ *Instructions:*\n1. Transfer 299₽ to the card\n2. Comment: *«Market Pulse 30 days»*\n3. Send screenshot + your ID → {owner}",
+        "tariff_90_card": "📅 *90 days — 699₽*\n\n💳 Card: `{card}`\n\n⚠️ *Instructions:*\n1. Transfer 699₽ to the card\n2. Comment: *«Market Pulse 90 days»*\n3. Send screenshot + your ID → {owner}",
+        "tariff_365_card": "📅 *365 days — 1999₽*\n\n💳 Card: `{card}`\n\n⚠️ *Instructions:*\n1. Transfer 1999₽ to the card\n2. Comment: *«Market Pulse 365 days»*\n3. Send screenshot + your ID → {owner}",
+        "tariff_30_usdt": "🪙 *30 days — 10 USDT*\n\n📤 USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Instructions:*\n1. Send exactly 10 USDT\n2. Network: Ethereum (ERC-20)\n3. Send screenshot + your ID → {owner}",
+        "tariff_90_usdt": "🪙 *90 days — 25 USDT*\n\n📤 USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Instructions:*\n1. Send exactly 25 USDT\n2. Network: Ethereum (ERC-20)\n3. Send screenshot + your ID → {owner}",
+        "tariff_365_usdt": "🪙 *365 days — 70 USDT*\n\n📤 USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Instructions:*\n1. Send exactly 70 USDT\n2. Network: Ethereum (ERC-20)\n3. Send screenshot + your ID → {owner}",
+        "tariff_30_ton": "💎 *30 days — 10 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Instructions:*\n1. Open @wallet in Telegram\n2. Send 10 TON to the address above\n3. Send screenshot + your ID → {owner}",
+        "tariff_90_ton": "💎 *90 days — 25 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Instructions:*\n1. Open @wallet in Telegram\n2. Send 25 TON to the address above\n3. Send screenshot + your ID → {owner}",
+        "tariff_365_ton": "💎 *365 days — 70 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Instructions:*\n1. Open @wallet in Telegram\n2. Send 70 TON to the address above\n3. Send screenshot + your ID → {owner}",
     },
 }
-for code in ["en"]:
-    LANG[code] = LANG["ru"].copy()
-    LANG[code]["name"] = "🇬🇧 English"
 
 def get_user_lang(uid):
     User = Query()
@@ -106,6 +196,8 @@ def set_user_lang(uid, code):
 def get_lang(message):
     lang = get_user_lang(message.from_user.id)
     if lang: return lang
+    code = message.from_user.language_code
+    if code and code.startswith("ru"): return LANG["ru"]
     return LANG["en"]
 
 def lang_menu():
@@ -149,42 +241,51 @@ def extend_user(user_id, days):
         USERS_DB.insert({"id": user_id, "expires": (datetime.now() + timedelta(days=days)).isoformat()})
 
 def get_price(ticker):
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
-    r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "5d", "interval": "1d"})
-    data = r.json()["chart"]["result"][0]
-    prices = data["indicators"]["quote"][0]["close"]
-    current = data["meta"]["regularMarketPrice"]
-    prev = prices[-2] if len(prices) >= 2 and prices[-2] else current
-    return {"price": current, "change": ((current - prev) / prev) * 100 if prev else 0}
+    try:
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "2d", "interval": "1d"}, timeout=5)
+        data = r.json()["chart"]["result"][0]
+        prices = data["indicators"]["quote"][0]["close"]
+        current = data["meta"]["regularMarketPrice"]
+        prev = prices[-2] if len(prices) >= 2 and prices[-2] else current
+        return {"price": current, "change": ((current - prev) / prev) * 100 if prev else 0}
+    except:
+        return None
 
 def get_crypto_price(symbol):
-    data = requests.get(f"https://api.binance.com/api/v3/ticker/24hr?symbol={symbol}").json()
-    current, prev = float(data["lastPrice"]), float(data["openPrice"])
-    return {"price": current, "change": ((current - prev) / prev) * 100 if prev else 0}
+    try:
+        data = requests.get(f"https://api.binance.com/api/v3/ticker/24hr?symbol={symbol}", timeout=5).json()
+        current, prev = float(data["lastPrice"]), float(data["openPrice"])
+        return {"price": current, "change": ((current - prev) / prev) * 100 if prev else 0}
+    except:
+        return None
 
 def get_rsi(ticker, period=14, is_crypto=False):
-    if is_crypto:
-        data = requests.get(f"https://api.binance.com/api/v3/klines?symbol={ticker}&interval=1d&limit=100").json()
-        closes = [float(c[4]) for c in data]
-    else:
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
-        data = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "3mo", "interval": "1d"}).json()
-        closes = data["chart"]["result"][0]["indicators"]["quote"][0]["close"]
-        closes = [c for c in closes if c is not None]
-    if len(closes) < period + 1: return 50
-    gains, losses = [], []
-    for i in range(1, len(closes)):
-        diff = closes[i] - closes[i-1]
-        gains.append(diff if diff > 0 else 0)
-        losses.append(-diff if diff < 0 else 0)
-    avg_gain = sum(gains[-period:]) / period
-    avg_loss = sum(losses[-period:]) / period
-    if avg_loss == 0: return 100
-    return round(100 - (100 / (1 + avg_gain / avg_loss)), 1)
+    try:
+        if is_crypto:
+            data = requests.get(f"https://api.binance.com/api/v3/klines?symbol={ticker}&interval=1d&limit=100", timeout=5).json()
+            closes = [float(c[4]) for c in data]
+        else:
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+            data = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "3mo", "interval": "1d"}, timeout=5).json()
+            closes = data["chart"]["result"][0]["indicators"]["quote"][0]["close"]
+            closes = [c for c in closes if c is not None]
+        if len(closes) < period + 1: return 50
+        gains, losses = [], []
+        for i in range(1, len(closes)):
+            diff = closes[i] - closes[i-1]
+            gains.append(diff if diff > 0 else 0)
+            losses.append(-diff if diff < 0 else 0)
+        avg_gain = sum(gains[-period:]) / period
+        avg_loss = sum(losses[-period:]) / period
+        if avg_loss == 0: return 100
+        return round(100 - (100 / (1 + avg_gain / avg_loss)), 1)
+    except:
+        return 50
 
 def get_news(ticker):
     try:
-        data = requests.get(f"https://query1.finance.yahoo.com/v1/finance/search?q={ticker}", headers={"User-Agent": "Mozilla/5.0"}).json()
+        data = requests.get(f"https://query1.finance.yahoo.com/v1/finance/search?q={ticker}", headers={"User-Agent": "Mozilla/5.0"}, timeout=5).json()
         return data.get("news", [])[:3]
     except: return []
 
@@ -278,13 +379,28 @@ def send_welcome(message):
 def main_menu(lang):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
-        types.KeyboardButton(lang["btn_price"]), types.KeyboardButton(lang["btn_stocks"]),
+        types.KeyboardButton(lang["btn_top_market"]), types.KeyboardButton(lang["btn_stocks"]),
         types.KeyboardButton(lang["btn_gainers"]), types.KeyboardButton(lang["btn_losers"]),
         types.KeyboardButton(lang["btn_potential"]), types.KeyboardButton(lang["btn_news"]),
         types.KeyboardButton(lang["btn_rsi"]), types.KeyboardButton(lang["btn_chart"]),
         types.KeyboardButton(lang["btn_crypto"]), types.KeyboardButton(lang["btn_alerts"]),
         types.KeyboardButton(lang["btn_profile"]), types.KeyboardButton(lang["btn_subscribe"]),
         types.KeyboardButton(lang["btn_lang"]), types.KeyboardButton(lang["btn_help"])
+    )
+    return markup
+
+def top_market_menu(lang):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        types.KeyboardButton(lang["btn_market_summary"]),
+        types.KeyboardButton(lang["btn_hype_day"]),
+        types.KeyboardButton(lang["btn_signal_day"]),
+        types.KeyboardButton(lang["btn_us_stocks"]),
+        types.KeyboardButton(lang["btn_ru_stocks"]),
+        types.KeyboardButton(lang["btn_cn_stocks"]),
+        types.KeyboardButton(lang["btn_eu_stocks"]),
+        types.KeyboardButton(lang["btn_crypto_top"]),
+        types.KeyboardButton(lang["btn_back"])
     )
     return markup
 
@@ -320,8 +436,9 @@ def send_price(message):
     try:
         t = message.text.split()[1].upper()
         d = get_crypto_price(t) if t.endswith("USDT") else get_price(t)
+        if d is None: bot.reply_to(message, lang["wrong_ticker"]); return
         e = "📈" if d["change"] >= 0 else "📉"
-        bot.send_message(message.chat.id, lang["price"].format(ticker=t, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
+        bot.send_message(message.chat.id, lang["price"].format(name=t, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
     except: bot.reply_to(message, lang["wrong_ticker"])
 
 @bot.message_handler(commands=['rsi'])
@@ -332,6 +449,7 @@ def cmd_rsi(message):
         t = message.text.split()[1].upper()
         ic = t.endswith("USDT")
         d = get_crypto_price(t) if ic else get_price(t)
+        if d is None: bot.reply_to(message, lang["wrong_ticker"]); return
         r = get_rsi(t, is_crypto=ic)
         s = "🔴" if r>=70 else "🟢" if r<=30 else "⚪" if 40<=r<=60 else "🟠" if r>60 else "🟡"
         bot.send_message(message.chat.id, lang["rsi"].format(ticker=t, price=d["price"], rsi=r, signal=s), parse_mode="Markdown", reply_markup=main_menu(lang))
@@ -345,6 +463,7 @@ def cmd_chart(message):
         t = message.text.split()[1].upper()
         if t.endswith("USDT"): d = get_crypto_price(t); l = get_crypto_chart_link(t)
         else: d = get_price(t); l = get_chart_link(t)
+        if d is None: bot.reply_to(message, lang["wrong_ticker"]); return
         bot.send_message(message.chat.id, lang["chart"].format(ticker=t, price=d["price"], link=l), parse_mode="Markdown", reply_markup=main_menu(lang), disable_web_page_preview=False)
     except: bot.reply_to(message, lang["wrong_ticker"])
 
@@ -419,9 +538,10 @@ def handle_buttons(message):
         return
     
     t = message.text
-    if t == lang["btn_price"]:
-        msg = bot.reply_to(message, lang["enter_ticker"], reply_markup=types.ForceReply(selective=True))
-        bot.register_next_step_handler(msg, lambda m: process_ticker(m, lang))
+    
+    # Главное меню
+    if t == lang["btn_top_market"]:
+        bot.send_message(uid, lang["top_market_title"], parse_mode="Markdown", reply_markup=top_market_menu(lang))
     elif t == lang["btn_stocks"]: show_watchlist(message, lang)
     elif t == lang["btn_gainers"]: show_top_gainers(message, lang)
     elif t == lang["btn_losers"]: show_top_losers(message, lang)
@@ -439,10 +559,25 @@ def handle_buttons(message):
         bot.register_next_step_handler(msg, lambda m: process_crypto_ticker(m, lang))
     elif t == lang["btn_crypto_list"]: show_crypto_list(message, lang)
     elif t == lang["btn_crypto_potential"]: show_crypto_potential(message, lang)
-    elif t == lang["btn_back"]: bot.send_message(uid, lang["main_menu"], reply_markup=main_menu(lang))
     elif t == lang["btn_alerts"]: cmd_alerts(message)
     elif t == lang["btn_profile"]: cmd_me(message)
     elif t == lang["btn_subscribe"]: show_payment_options(message, lang)
+    elif t == lang["btn_help"]: bot.send_message(uid, lang["help"], parse_mode="Markdown", reply_markup=main_menu(lang))
+    
+    # Топ рынка
+    elif t == lang["btn_market_summary"]: show_market_summary(message, lang)
+    elif t == lang["btn_hype_day"]: show_hype_of_day(message, lang)
+    elif t == lang["btn_signal_day"]: show_signal_of_day(message, lang)
+    elif t == lang["btn_us_stocks"]: show_stock_group(message, lang, US_STOCKS, "🇺🇸 Акции США")
+    elif t == lang["btn_ru_stocks"]: show_stock_group(message, lang, RU_STOCKS, "🇷🇺 Акции РФ")
+    elif t == lang["btn_cn_stocks"]: show_stock_group(message, lang, CN_STOCKS, "🇨🇳 Акции Китая")
+    elif t == lang["btn_eu_stocks"]: show_stock_group(message, lang, EU_STOCKS, "🇪🇺 Акции Европы")
+    elif t == lang["btn_crypto_top"]: show_stock_group(message, lang, TOP_CRYPTO, "🪙 Крипто-топ", is_crypto=True)
+    
+    # Назад
+    elif t == lang["btn_back"]: bot.send_message(uid, lang["main_menu"], reply_markup=main_menu(lang))
+    
+    # Оплата
     elif t == lang["btn_card_pay"]: show_card_tariffs(message, lang)
     elif t == lang["btn_crypto_pay"]: show_usdt_tariffs(message, lang)
     elif t == lang["btn_ton_pay"]: show_ton_tariffs(message, lang)
@@ -456,14 +591,83 @@ def handle_buttons(message):
     elif t == lang["ton_tariff_90"]: show_tariff_ton(message, lang, 90, 25)
     elif t == lang["ton_tariff_365"]: show_tariff_ton(message, lang, 365, 70)
     elif t == lang["btn_back_sub"]: bot.send_message(uid, lang["main_menu"], reply_markup=main_menu(lang))
-    elif t == lang["btn_help"]: bot.send_message(uid, lang["help"], parse_mode="Markdown", reply_markup=main_menu(lang))
+    
     else:
         try:
             tick = t.upper()
             d = get_crypto_price(tick) if tick.endswith("USDT") else get_price(tick)
+            if d is None: bot.reply_to(message, lang["use_buttons"], reply_markup=main_menu(lang)); return
             e = "📈" if d["change"]>=0 else "📉"
-            bot.send_message(uid, lang["price"].format(ticker=tick, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
+            bot.send_message(uid, lang["price"].format(name=tick, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
         except: bot.reply_to(message, lang["use_buttons"], reply_markup=main_menu(lang))
+
+# ─── ТОП РЫНКА ──────────────────────────────────────────
+def show_market_summary(message, lang):
+    text = lang["market_summary"]
+    for name, ticker in INDICES.items():
+        d = get_price(ticker)
+        if d:
+            e = "📈" if d["change"]>=0 else "📉"
+            text += f"{name}: ${d['price']:.2f} {e} {d['change']:+.2f}%\n"
+        else:
+            text += f"{name}: ❌\n"
+    text += "━━━━━━━━━━━━━━━"
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
+
+def show_hype_of_day(message, lang):
+    best = None
+    best_vol = 0
+    for ticker in WATCHLIST:
+        try:
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+            r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "1d", "interval": "1d"}, timeout=5)
+            data = r.json()["chart"]["result"][0]
+            vol = data["indicators"]["quote"][0]["volume"][-1]
+            if vol and vol > best_vol:
+                best_vol = vol
+                price = data["meta"]["regularMarketPrice"]
+                prev = data["indicators"]["quote"][0]["close"][-2]
+                change = ((price - prev) / prev) * 100 if prev else 0
+                best = {"name": ticker, "price": price, "change": change, "volume": vol}
+        except: pass
+    
+    if best:
+        e = "📈" if best["change"]>=0 else "📉"
+        text = lang["hype_of_day"] + f"*{best['name']}*\n💰 ${best['price']:.2f} {e} {best['change']:+.2f}%\n📊 Объём: {best['volume']:,.0f}"
+    else:
+        text = lang["hype_of_day"] + "Нет данных."
+    text += "\n━━━━━━━━━━━━━━━"
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
+
+def show_signal_of_day(message, lang):
+    best = None
+    best_rsi = 100
+    for ticker in WATCHLIST:
+        rsi = get_rsi(ticker)
+        d = get_price(ticker)
+        if d and rsi < best_rsi:
+            best_rsi = rsi
+            best = {"name": ticker, "price": d["price"], "change": d["change"], "rsi": rsi}
+    
+    if best:
+        s = "🟢" if best["rsi"]<=30 else "🟡"
+        text = lang["signal_of_day"] + f"*{best['name']}*\n💰 ${best['price']:.2f}\n📊 RSI: *{best['rsi']}* {s}\n\n_RSI ниже 30 — сигнал к покупке_"
+    else:
+        text = lang["signal_of_day"] + "Нет данных."
+    text += "\n━━━━━━━━━━━━━━━"
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
+
+def show_stock_group(message, lang, stock_dict, title, is_crypto=False):
+    text = f"*{title}*\n\n"
+    for name, ticker in stock_dict.items():
+        d = get_crypto_price(ticker) if is_crypto else get_price(ticker)
+        if d:
+            e = "📈" if d["change"]>=0 else "📉"
+            text += f"{name}: ${d['price']:.2f} {e} {d['change']:+.2f}%\n"
+        else:
+            text += f"{name}: ❌\n"
+    text += "━━━━━━━━━━━━━━━"
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
 
 # ─── МЕНЮ ОПЛАТЫ ────────────────────────────────────────
 def show_payment_options(message, lang):
@@ -531,21 +735,24 @@ def process_ticker(message, lang):
     try:
         t = message.text.upper()
         d = get_crypto_price(t) if t.endswith("USDT") else get_price(t)
+        if d is None: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang)); return
         e = "📈" if d["change"]>=0 else "📉"
-        bot.send_message(message.chat.id, lang["price"].format(ticker=t, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
+        bot.send_message(message.chat.id, lang["price"].format(name=t, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
     except: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang))
 
 def process_crypto_ticker(message, lang):
     try:
         t = message.text.upper(); d = get_crypto_price(t)
+        if d is None: bot.reply_to(message, lang["wrong_ticker"], reply_markup=crypto_menu(lang)); return
         e = "📈" if d["change"]>=0 else "📉"
-        bot.send_message(message.chat.id, lang["price"].format(ticker=t, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=crypto_menu(lang))
+        bot.send_message(message.chat.id, lang["price"].format(name=t, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=crypto_menu(lang))
     except: bot.reply_to(message, lang["wrong_ticker"], reply_markup=crypto_menu(lang))
 
 def process_rsi(message, lang):
     try:
         t = message.text.upper(); ic = t.endswith("USDT")
         d = get_crypto_price(t) if ic else get_price(t)
+        if d is None: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang)); return
         r = get_rsi(t, is_crypto=ic)
         s = "🔴" if r>=70 else "🟢" if r<=30 else "⚪" if 40<=r<=60 else "🟠" if r>60 else "🟡"
         bot.send_message(message.chat.id, lang["rsi"].format(ticker=t, price=d["price"], rsi=r, signal=s), parse_mode="Markdown", reply_markup=main_menu(lang))
@@ -556,23 +763,25 @@ def process_chart(message, lang):
         t = message.text.upper()
         if t.endswith("USDT"): d = get_crypto_price(t); l = get_crypto_chart_link(t)
         else: d = get_price(t); l = get_chart_link(t)
+        if d is None: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang)); return
         bot.send_message(message.chat.id, lang["chart"].format(ticker=t, price=d["price"], link=l), parse_mode="Markdown", reply_markup=main_menu(lang), disable_web_page_preview=False)
     except: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang))
 
 def show_watchlist(message, lang):
     text = lang["stock_list"]
     for t in WATCHLIST:
-        try:
-            d = get_price(t); text += f"• *{t}*: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n"
-        except: text += f"• *{t}*: ❌\n"
+        d = get_price(t)
+        if d:
+            text += f"• *{t}*: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n"
+        else: text += f"• *{t}*: ❌\n"
     text += "━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
 
 def show_top_gainers(message, lang):
     dl = []
     for t in WATCHLIST:
-        try: d = get_price(t); d["ticker"] = t; dl.append(d)
-        except: pass
+        d = get_price(t)
+        if d: d["ticker"] = t; dl.append(d)
     dl.sort(key=lambda x: x["change"], reverse=True)
     text = lang["gainers"]
     for i, d in enumerate(dl[:5], 1): text += f"{i}. *{d['ticker']}*: +{d['change']:.2f}%\n"
@@ -582,8 +791,8 @@ def show_top_gainers(message, lang):
 def show_top_losers(message, lang):
     dl = []
     for t in WATCHLIST:
-        try: d = get_price(t); d["ticker"] = t; dl.append(d)
-        except: pass
+        d = get_price(t)
+        if d: d["ticker"] = t; dl.append(d)
     dl.sort(key=lambda x: x["change"])
     text = lang["losers"]
     for i, d in enumerate(dl[:5], 1): text += f"{i}. *{d['ticker']}*: {d['change']:.2f}%\n"
@@ -593,8 +802,8 @@ def show_top_losers(message, lang):
 def show_potential(message, lang):
     dl = []
     for t in WATCHLIST:
-        try: dl.append({"ticker": t, "rsi": get_rsi(t), "price": get_price(t)["price"]})
-        except: pass
+        d = get_price(t)
+        if d: dl.append({"ticker": t, "rsi": get_rsi(t), "price": d["price"]})
     dl.sort(key=lambda x: x["rsi"])
     pot = [d for d in dl if d["rsi"] < 45][:5]
     text = (lang["potential"] + "\n".join(f"{'🟢' if d['rsi']<30 else '🟡'} *{d['ticker']}*: RSI {d['rsi']} | ${d['price']:.2f}" for d in pot)) if pot else lang["no_candidates"]
@@ -605,10 +814,8 @@ def show_news_movers(message, lang):
     bot.send_message(message.chat.id, lang["searching_news"])
     mv = []
     for t in WATCHLIST:
-        try:
-            d = get_price(t)
-            if abs(d["change"]) > 1.5: mv.append({"ticker": t, "change": d["change"], "price": d["price"], "news": get_news(t)})
-        except: pass
+        d = get_price(t)
+        if d and abs(d["change"]) > 1.5: mv.append({"ticker": t, "change": d["change"], "price": d["price"], "news": get_news(t)})
     if not mv: bot.send_message(message.chat.id, lang["no_news"], reply_markup=main_menu(lang)); return
     mv.sort(key=lambda x: abs(x["change"]), reverse=True)
     text = lang["news"]
@@ -626,17 +833,17 @@ def show_news_movers(message, lang):
 def show_crypto_list(message, lang):
     text = lang["crypto_list"]
     for t in CRYPTO_LIST:
-        try:
-            d = get_crypto_price(t); text += f"• *{t.replace('USDT','')}*: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n"
-        except: text += f"• *{t}*: ❌\n"
+        d = get_crypto_price(t)
+        if d: text += f"• *{t.replace('USDT','')}*: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n"
+        else: text += f"• *{t}*: ❌\n"
     text += "━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=crypto_menu(lang))
 
 def show_crypto_potential(message, lang):
     dl = []
     for t in CRYPTO_LIST:
-        try: dl.append({"ticker": t.replace("USDT",""), "rsi": get_rsi(t, is_crypto=True), "price": get_crypto_price(t)["price"]})
-        except: pass
+        d = get_crypto_price(t)
+        if d: dl.append({"ticker": t.replace("USDT",""), "rsi": get_rsi(t, is_crypto=True), "price": d["price"]})
     dl.sort(key=lambda x: x["rsi"])
     pot = [d for d in dl if d["rsi"] < 45][:5]
     text = (lang["crypto_potential"] + "\n".join(f"{'🟢' if d['rsi']<30 else '🟡'} *{d['ticker']}*: RSI {d['rsi']} | ${d['price']:.2f}" for d in pot)) if pot else lang["no_candidates"]
