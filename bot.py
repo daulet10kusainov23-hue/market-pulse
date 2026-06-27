@@ -2,11 +2,12 @@ import telebot
 import requests
 import json
 import os
+import threading
 from telebot import types
 from tinydb import TinyDB, Query
 from datetime import datetime, timedelta
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
-# ─── НАСТРОЙКИ ──────────────────────────────────────────
 TOKEN = os.getenv("TOKEN", "")
 MASTER_KEY = os.getenv("MASTER_KEY", "default123")
 OWNER_ID = int(os.getenv("OWNER_ID", "453561961"))
@@ -22,7 +23,6 @@ LANG_DB = DB.table("languages")
 WATCHLIST = ["AAPL", "TSLA", "GOOGL", "MSFT", "AMZN", "META", "NVDA", "NFLX", "AMD", "INTC"]
 CRYPTO_LIST = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "DOTUSDT"]
 
-# ─── ЯЗЫКИ ──────────────────────────────────────────────
 LANG = {
     "ru": {
         "name": "🇷🇺 Русский", "choose": "🌐 Выберите язык:",
@@ -50,7 +50,6 @@ LANG = {
     }
 }
 
-# ─── ФУНКЦИИ ────────────────────────────────────────────
 def get_user_lang(uid):
     User = Query()
     entry = LANG_DB.get(User.id == uid)
@@ -109,7 +108,6 @@ def get_crypto_price(symbol):
     current, prev = float(data["lastPrice"]), float(data["openPrice"])
     return {"price": current, "change": ((current - prev) / prev) * 100}
 
-# ─── СТАРТ ──────────────────────────────────────────────
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     uid = message.from_user.id
@@ -150,7 +148,6 @@ def main_menu(lang):
     )
     return markup
 
-# ─── ВЫБОР ЯЗЫКА ────────────────────────────────────────
 @bot.callback_query_handler(func=lambda call: call.data.startswith("lang_"))
 def callback_lang(call):
     uid = call.from_user.id
@@ -167,7 +164,6 @@ def callback_lang(call):
     else:
         bot.send_message(uid, lang["welcome_no_access"].format(owner=OWNER_USERNAME), parse_mode="Markdown")
 
-# ─── КОМАНДЫ ────────────────────────────────────────────
 @bot.message_handler(commands=['price'])
 def send_price(message):
     if not is_allowed(message.from_user.id): return
@@ -183,11 +179,9 @@ def send_price(message):
 @bot.message_handler(commands=['me'])
 def cmd_me(message):
     if not is_allowed(message.from_user.id): return
-    lang = get_lang(message)
     uid = message.from_user.id
     bot.send_message(uid, f"👤 ID: `{uid}`\nПодписка: *{days_left(uid)}* дн.", parse_mode="Markdown")
 
-# ─── КНОПКИ ──────────────────────────────────────────────
 @bot.message_handler(func=lambda m: True)
 def handle_buttons(message):
     uid = message.from_user.id
@@ -228,7 +222,18 @@ def process_ticker(message, lang):
     except:
         bot.reply_to(message, "❌", reply_markup=main_menu(lang))
 
-# ─── ЗАПУСК ──────────────────────────────────────────────
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+def run_health_server():
+    server = HTTPServer(("0.0.0.0", 10000), HealthHandler)
+    server.serve_forever()
+
+threading.Thread(target=run_health_server, daemon=True).start()
+
 if __name__ == '__main__':
     print("Market Pulse запущен")
     bot.infinity_polling()
