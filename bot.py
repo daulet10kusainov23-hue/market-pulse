@@ -31,7 +31,8 @@ US_STOCKS = {"🍎 Apple": "AAPL", "🚗 Tesla": "TSLA", "🔍 Google": "GOOGL",
 RU_STOCKS = {"🏦 Сбер": "SBER.ME", "⛽️ Газпром": "GAZP.ME", "🛢 Лукойл": "LKOH.ME", "🔍 Яндекс": "YNDX.ME", "💰 ВТБ": "VTBR.ME", "🥇 Норникель": "GMKN.ME", "🛢 Роснефть": "ROSN.ME", "🏪 Магнит": "MGNT.ME", "⛽️ Сургутнефтегаз": "SNGS.ME", "⚡️ Новатэк": "NVTK.ME"}
 CN_STOCKS = {"🛒 Alibaba": "BABA", "🔍 Baidu": "BIDU", "🚗 NIO": "NIO", "📦 JD.com": "JD", "🛍 Pinduoduo": "PDD", "🎮 Tencent": "TCEHY"}
 EU_STOCKS = {"👜 LVMH": "MC.PA", "💻 ASML": "ASML", "📊 SAP": "SAP", "⚙️ Siemens": "SIEGY", "🚗 BMW": "BMWYY", "✈️ Airbus": "EADSY", "🛡 Allianz": "ALIZF"}
-INDICES = {"🇺🇸 S&P 500": "SPY", "📊 NASDAQ": "QQQ", "🏛 Dow Jones": "DIA", "🇷🇺 MOEX": "IMOEX.ME", "🇨🇳 Shanghai": "FXI", "🇪🇺 Euro Stoxx 50": "FEZ"}
+TOP_CRYPTO = {"₿ Bitcoin": "BTCUSDT", "♦️ Ethereum": "ETHUSDT", "💎 Solana": "SOLUSDT", "🟠 BNB": "BNBUSDT", "🔷 XRP": "XRPUSDT", "🐶 Dogecoin": "DOGEUSDT"}
+INDICES = {"🇺🇸 S&P 500": "SPY", "📊 NASDAQ": "QQQ", "🏛 Dow Jones": "DIA", "🇷🇺 MOEX": "IMOEX.ME"}
 
 LANG = {
     "ru": {
@@ -615,45 +616,51 @@ def show_market_summary(message, lang):
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
 
 def show_hype_of_day(message, lang):
-    best = None
-    best_vol = 0
-    for ticker in WATCHLIST:
-        try:
-            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
-            r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "1d", "interval": "1d"}, timeout=5)
-            data = r.json()["chart"]["result"][0]
-            vol = data["indicators"]["quote"][0]["volume"][-1]
-            if vol and vol > best_vol:
-                best_vol = vol
-                price = data["meta"]["regularMarketPrice"]
-                prev = data["indicators"]["quote"][0]["close"][-2]
-                change = ((price - prev) / prev) * 100 if prev else 0
-                best = {"name": ticker, "price": price, "change": change, "volume": vol}
-        except: pass
-    
-    if best:
-        e = "📈" if best["change"]>=0 else "📉"
-        text = lang["hype_of_day"] + f"*{best['name']}*\n💰 ${best['price']:.2f} {e} {best['change']:+.2f}%\n📊 Объём: {best['volume']:,.0f}"
-    else:
-        text = lang["hype_of_day"] + "Нет данных."
+    try:
+        best = None
+        best_vol = 0
+        for ticker in WATCHLIST:
+            try:
+                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+                r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "1d", "interval": "1d"}, timeout=5)
+                data = r.json()["chart"]["result"][0]
+                vol = data["indicators"]["quote"][0]["volume"][-1]
+                if vol and vol > best_vol:
+                    best_vol = vol
+                    price = data["meta"]["regularMarketPrice"]
+                    prev = data["indicators"]["quote"][0]["close"][-2]
+                    change = ((price - prev) / prev) * 100 if prev else 0
+                    best = {"name": ticker, "price": price, "change": change, "volume": vol}
+            except: pass
+        
+        if best:
+            e = "📈" if best["change"]>=0 else "📉"
+            text = lang["hype_of_day"] + f"*{best['name']}*\n💰 ${best['price']:.2f} {e} {best['change']:+.2f}%\n📊 Объём: {best['volume']:,.0f}"
+        else:
+            text = lang["hype_of_day"] + "Нет данных."
+    except:
+        text = lang["hype_of_day"] + "Ошибка загрузки."
     text += "\n━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
 
 def show_signal_of_day(message, lang):
-    best = None
-    best_rsi = 100
-    for ticker in WATCHLIST:
-        rsi = get_rsi(ticker)
-        d = get_price(ticker)
-        if d and rsi < best_rsi:
-            best_rsi = rsi
-            best = {"name": ticker, "price": d["price"], "change": d["change"], "rsi": rsi}
-    
-    if best:
-        s = "🟢" if best["rsi"]<=30 else "🟡"
-        text = lang["signal_of_day"] + f"*{best['name']}*\n💰 ${best['price']:.2f}\n📊 RSI: *{best['rsi']}* {s}\n\n_RSI ниже 30 — сигнал к покупке_"
-    else:
-        text = lang["signal_of_day"] + "Нет данных."
+    try:
+        best = None
+        best_rsi = 100
+        for ticker in WATCHLIST:
+            rsi = get_rsi(ticker)
+            d = get_price(ticker)
+            if d and rsi < best_rsi:
+                best_rsi = rsi
+                best = {"name": ticker, "price": d["price"], "change": d["change"], "rsi": rsi}
+        
+        if best:
+            s = "🟢" if best["rsi"]<=30 else "🟡"
+            text = lang["signal_of_day"] + f"*{best['name']}*\n💰 ${best['price']:.2f}\n📊 RSI: *{best['rsi']}* {s}\n\n_RSI ниже 30 — сигнал к покупке_"
+        else:
+            text = lang["signal_of_day"] + "Нет данных."
+    except:
+        text = lang["signal_of_day"] + "Ошибка загрузки."
     text += "\n━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
 
