@@ -30,7 +30,7 @@ CRYPTO_LIST = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT"
 US_STOCKS = {"🍎 Apple": "AAPL", "🚗 Tesla": "TSLA", "🔍 Google": "GOOGL", "📦 Amazon": "AMZN", "🪟 Microsoft": "MSFT", "🎮 NVIDIA": "NVDA", "👤 Meta": "META", "🎬 Netflix": "NFLX", "💻 AMD": "AMD", "🔷 Intel": "INTC", "🏦 JPMorgan": "JPM", "💊 Pfizer": "PFE", "🛢 Exxon": "XOM", "📱 Adobe": "ADBE", "☁️ Salesforce": "CRM"}
 RU_STOCKS = {"🏦 Сбер": "SBER.ME", "⛽️ Газпром": "GAZP.ME", "🛢 Лукойл": "LKOH.ME", "🔍 Яндекс": "YNDX.ME", "💰 ВТБ": "VTBR.ME", "🥇 Норникель": "GMKN.ME", "🛢 Роснефть": "ROSN.ME", "🏪 Магнит": "MGNT.ME", "⛽️ Сургутнефтегаз": "SNGS.ME", "⚡️ Новатэк": "NVTK.ME"}
 CN_STOCKS = {"🛒 Alibaba": "BABA", "🔍 Baidu": "BIDU", "🚗 NIO": "NIO", "📦 JD.com": "JD", "🛍 Pinduoduo": "PDD", "🎮 Tencent": "TCEHY"}
-EU_STOCKS = {"👜 LVMH": "MC.PA", "💻 ASML": "ASML", "📊 SAP": "SAP", "⚙️ Siemens": "SIEGY", "🚗 BMW": "BMWYY", "✈️ Airbus": "EADSY", "🛡 Allianz": "ALIZF"}
+EU_STOCKS = {"👜 LVMH": "LVMUY", "💻 ASML": "ASML", "📊 SAP": "SAP", "⚙️ Siemens": "SIEGY", "🚗 BMW": "BMWYY", "✈️ Airbus": "EADSY", "🛡 Allianz": "ALIZF"}
 TOP_CRYPTO = {"₿ Bitcoin": "BTCUSDT", "♦️ Ethereum": "ETHUSDT", "💎 Solana": "SOLUSDT", "🟠 BNB": "BNBUSDT", "🔷 XRP": "XRPUSDT", "🐶 Dogecoin": "DOGEUSDT"}
 INDICES = {"🇺🇸 S&P 500": "SPY", "📊 NASDAQ": "QQQ", "🏛 Dow Jones": "DIA", "🇷🇺 MOEX": "IMOEX.ME"}
 
@@ -618,28 +618,21 @@ def show_market_summary(message, lang):
 def show_hype_of_day(message, lang):
     try:
         best = None
-        best_vol = 0
-        for ticker in WATCHLIST:
-            try:
-                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
-                r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "1d", "interval": "1d"}, timeout=5)
-                data = r.json()["chart"]["result"][0]
-                vol = data["indicators"]["quote"][0]["volume"][-1]
-                if vol and vol > best_vol:
-                    best_vol = vol
-                    price = data["meta"]["regularMarketPrice"]
-                    prev = data["indicators"]["quote"][0]["close"][-2]
-                    change = ((price - prev) / prev) * 100 if prev else 0
-                    best = {"name": ticker, "price": price, "change": change, "volume": vol}
-            except: pass
+        best_change = 0
+        all_stocks = list(US_STOCKS.values()) + list(RU_STOCKS.values())
+        for ticker in all_stocks[:10]:
+            d = get_price(ticker)
+            if d and abs(d["change"]) > abs(best_change):
+                best_change = d["change"]
+                best = {"name": ticker, "price": d["price"], "change": d["change"]}
         
         if best:
             e = "📈" if best["change"]>=0 else "📉"
-            text = lang["hype_of_day"] + f"*{best['name']}*\n💰 ${best['price']:.2f} {e} {best['change']:+.2f}%\n📊 Объём: {best['volume']:,.0f}"
+            text = lang["hype_of_day"] + f"*{best['name']}*\n💰 ${best['price']:.2f} {e} {best['change']:+.2f}%\n🔥 Самое сильное движение сегодня"
         else:
-            text = lang["hype_of_day"] + "Нет данных."
+            text = lang["hype_of_day"] + "Рынок спокоен. Нет резких движений."
     except:
-        text = lang["hype_of_day"] + "Ошибка загрузки."
+        text = lang["hype_of_day"] + "Ошибка загрузки. Попробуйте позже."
     text += "\n━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
 
