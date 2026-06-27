@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Pulse</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .header h1 { font-size: 22px; color: #38bdf8; }
+        .header p { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+        .card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .card h2 { font-size: 16px; margin-bottom: 8px; color: #38bdf8; }
+        .card p { font-size: 14px; color: #94a3b8; }
+        .menu {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .btn {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+            color: #e2e8f0;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: block;
+        }
+        .btn:active { background: #334155; }
+        .btn .icon { font-size: 24px; display: block; margin-bottom: 6px; }
+        .badge {
+            background: #38bdf8;
+            color: #0f172a;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Market Pulse</h1>
+        <p>Твой биржевой ассистент</p>
+    </div>
+
+    <div class="card">
+        <h2>👤 Профиль</h2>
+        <p>ID: загрузка...</p>
+        <p>Подписка: <span class="badge">Активна</span></p>
+    </div>
+
+    <div class="menu">
+        <a href="#" class="btn">
+            <span class="icon">💳</span>
+            Подписка
+        </a>
+        <a href="#" class="btn">
+            <span class="icon">📈</span>
+            Графики
+        </a>
+        <a href="#" class="btn">
+            <span class="icon">📰</span>
+            Новости
+        </a>
+        <a href="#" class="btn">
+            <span class="icon">⚙️</span>
+            Настройки
+        </a>
+    </div>
+
+    <div class="card" style="margin-top: 12px;">
+        <h2>💡 Совет дня</h2>
+        <p>Следи за RSI — значение ниже 30 сигнализирует о возможном росте актива.</p>
+    </div>
+
+    <script>
+        // Подключаем Telegram Web App API
+        if (window.Telegram && window.Telegram.WebApp) {
+            const app = window.Telegram.WebApp;
+            app.ready();
+            app.expand();
+            
+            // Устанавливаем цветовую схему
+            app.setHeaderColor('#0f172a');
+            app.setBackgroundColor('#0f172a');
+        }
+    </script>
+</body>
+</html>
