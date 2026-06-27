@@ -30,7 +30,7 @@ CRYPTO_LIST = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT"
 US_STOCKS = {"🍎 Apple": "AAPL", "🚗 Tesla": "TSLA", "🔍 Google": "GOOGL", "📦 Amazon": "AMZN", "🪟 Microsoft": "MSFT", "🎮 NVIDIA": "NVDA", "👤 Meta": "META", "🎬 Netflix": "NFLX", "💻 AMD": "AMD", "🔷 Intel": "INTC", "🏦 JPMorgan": "JPM", "💊 Pfizer": "PFE", "🛢 Exxon": "XOM", "📱 Adobe": "ADBE", "☁️ Salesforce": "CRM"}
 RU_STOCKS = {"🏦 Сбер": "SBER.ME", "⛽️ Газпром": "GAZP.ME", "🛢 Лукойл": "LKOH.ME", "🔍 Яндекс": "YNDX.ME", "💰 ВТБ": "VTBR.ME", "🥇 Норникель": "GMKN.ME", "🛢 Роснефть": "ROSN.ME", "🏪 Магнит": "MGNT.ME", "⛽️ Сургутнефтегаз": "SNGS.ME", "⚡️ Новатэк": "NVTK.ME"}
 CN_STOCKS = {"🛒 Alibaba": "BABA", "🔍 Baidu": "BIDU", "🚗 NIO": "NIO", "📦 JD.com": "JD", "🛍 Pinduoduo": "PDD", "🎮 Tencent": "TCEHY"}
-EU_STOCKS = {"👜 LVMH": "LVMUY", "💻 ASML": "ASML", "📊 SAP": "SAP", "⚙️ Siemens": "SIEGY", "🚗 BMW": "BMWYY", "✈️ Airbus": "EADSY", "🛡 Allianz": "ALIZF"}
+EU_STOCKS = {"🇪🇺 Европа ETF": "VGK", "🇩🇪 Германия ETF": "EWG", "🇫🇷 Франция ETF": "EWQ", "🇬🇧 Англия ETF": "EWU"}
 TOP_CRYPTO = {"₿ Bitcoin": "BTCUSDT", "♦️ Ethereum": "ETHUSDT", "💎 Solana": "SOLUSDT", "🟠 BNB": "BNBUSDT", "🔷 XRP": "XRPUSDT", "🐶 Dogecoin": "DOGEUSDT"}
 INDICES = {"🇺🇸 S&P 500": "SPY", "📊 NASDAQ": "QQQ", "🏛 Dow Jones": "DIA", "🇷🇺 MOEX": "IMOEX.ME"}
 
@@ -540,7 +540,6 @@ def handle_buttons(message):
     
     t = message.text
     
-    # Главное меню
     if t == lang["btn_top_market"]:
         bot.send_message(uid, lang["top_market_title"], parse_mode="Markdown", reply_markup=top_market_menu(lang))
     elif t == lang["btn_stocks"]: show_watchlist(message, lang)
@@ -565,7 +564,6 @@ def handle_buttons(message):
     elif t == lang["btn_subscribe"]: show_payment_options(message, lang)
     elif t == lang["btn_help"]: bot.send_message(uid, lang["help"], parse_mode="Markdown", reply_markup=main_menu(lang))
     
-    # Топ рынка
     elif t == lang["btn_market_summary"]: show_market_summary(message, lang)
     elif t == lang["btn_hype_day"]: show_hype_of_day(message, lang)
     elif t == lang["btn_signal_day"]: show_signal_of_day(message, lang)
@@ -575,10 +573,8 @@ def handle_buttons(message):
     elif t == lang["btn_eu_stocks"]: show_stock_group(message, lang, EU_STOCKS, "🇪🇺 Акции Европы")
     elif t == lang["btn_crypto_top"]: show_stock_group(message, lang, TOP_CRYPTO, "🪙 Крипто-топ", is_crypto=True)
     
-    # Назад
     elif t == lang["btn_back"]: bot.send_message(uid, lang["main_menu"], reply_markup=main_menu(lang))
     
-    # Оплата
     elif t == lang["btn_card_pay"]: show_card_tariffs(message, lang)
     elif t == lang["btn_crypto_pay"]: show_usdt_tariffs(message, lang)
     elif t == lang["btn_ton_pay"]: show_ton_tariffs(message, lang)
