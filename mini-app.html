@@ -70,22 +70,30 @@
     </div>
 
     <div class="menu">
-        <a href="#" class="btn">
+        <div class="btn" onclick="openBot()">
+            <span class="icon">💬</span>
+            Чат с ботом
+        </div>
+        <div class="btn" onclick="openSubscribe()">
             <span class="icon">💳</span>
             Подписка
-        </a>
-        <a href="#" class="btn">
+        </div>
+        <div class="btn" onclick="openChart()">
             <span class="icon">📈</span>
             Графики
-        </a>
-        <a href="#" class="btn">
+        </div>
+        <div class="btn" onclick="openNews()">
             <span class="icon">📰</span>
             Новости
-        </a>
-        <a href="#" class="btn">
-            <span class="icon">⚙️</span>
-            Настройки
-        </a>
+        </div>
+        <div class="btn" onclick="openTop()">
+            <span class="icon">🔥</span>
+            Топ рынка
+        </div>
+        <div class="btn" onclick="openHelp()">
+            <span class="icon">ℹ️</span>
+            Помощь
+        </div>
     </div>
 
     <div class="card" style="margin-top: 12px;">
@@ -94,13 +102,34 @@
     </div>
 
     <script>
-        // Подключаем Telegram Web App API
+        const BOT_URL = "https://t.me/TestFinanceHelper_Bot";
+
+        function openBot() {
+            window.open(BOT_URL, "_blank");
+        }
+        function openSubscribe() {
+            window.open(BOT_URL, "_blank");
+        }
+        function openChart() {
+            window.open("https://www.tradingview.com/chart/?symbol=NASDAQ%3AAAPL", "_blank");
+        }
+        function openNews() {
+            window.open("https://finance.yahoo.com/", "_blank");
+        }
+        function openTop() {
+            window.open(BOT_URL, "_blank");
+        }
+        function openHelp() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                const app = window.Telegram.WebApp;
+                app.sendData("help");
+            }
+        }
+
         if (window.Telegram && window.Telegram.WebApp) {
             const app = window.Telegram.WebApp;
             app.ready();
             app.expand();
-            
-            // Устанавливаем цветовую схему
             app.setHeaderColor('#0f172a');
             app.setBackgroundColor('#0f172a');
         }
