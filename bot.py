@@ -25,13 +25,35 @@ USERS_DB = DB.table("users")
 LANG_DB = DB.table("languages")
 
 WATCHLIST = ["AAPL", "TSLA", "GOOGL", "MSFT", "AMZN", "META", "NVDA", "NFLX", "AMD", "INTC"]
-CRYPTO_LIST = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "DOTUSDT"]
+CRYPTO_LIST = ["bitcoin", "ethereum", "solana", "binancecoin", "ripple", "dogecoin", "cardano", "polkadot"]
 
 US_STOCKS = {"🍎 Apple": "AAPL", "🚗 Tesla": "TSLA", "🔍 Google": "GOOGL", "📦 Amazon": "AMZN", "🪟 Microsoft": "MSFT", "🎮 NVIDIA": "NVDA", "👤 Meta": "META", "🎬 Netflix": "NFLX", "💻 AMD": "AMD", "🔷 Intel": "INTC", "🏦 JPMorgan": "JPM", "💊 Pfizer": "PFE", "🛢 Exxon": "XOM", "📱 Adobe": "ADBE", "☁️ Salesforce": "CRM"}
-RU_STOCKS = {"🏦 Сбер": "SBER.ME", "⛽️ Газпром": "GAZP.ME", "🛢 Лукойл": "LKOH.ME", "🔍 Яндекс": "YNDX.ME", "💰 ВТБ": "VTBR.ME", "🥇 Норникель": "GMKN.ME", "🛢 Роснефть": "ROSN.ME", "🏪 Магнит": "MGNT.ME", "⛽️ Сургутнефтегаз": "SNGS.ME", "⚡️ Новатэк": "NVTK.ME"}
+
+RU_STOCKS = {
+    "🏦 Сбер": "https://www.tradingview.com/chart/?symbol=MOEX%3ASBER",
+    "⛽️ Газпром": "https://www.tradingview.com/chart/?symbol=MOEX%3AGAZP",
+    "🛢 Лукойл": "https://www.tradingview.com/chart/?symbol=MOEX%3ALKOH",
+    "🔍 Яндекс": "https://www.tradingview.com/chart/?symbol=MOEX%3AYNDX",
+    "💰 ВТБ": "https://www.tradingview.com/chart/?symbol=MOEX%3AVTBR",
+    "🥇 Норникель": "https://www.tradingview.com/chart/?symbol=MOEX%3AGMKN",
+    "🛢 Роснефть": "https://www.tradingview.com/chart/?symbol=MOEX%3AROSN",
+    "🏪 Магнит": "https://www.tradingview.com/chart/?symbol=MOEX%3AMGNT",
+    "⛽️ Сургутнефтегаз": "https://www.tradingview.com/chart/?symbol=MOEX%3ASNGS",
+    "⚡️ Новатэк": "https://www.tradingview.com/chart/?symbol=MOEX%3ANVTK",
+}
+
 CN_STOCKS = {"🛒 Alibaba": "BABA", "🔍 Baidu": "BIDU", "🚗 NIO": "NIO", "📦 JD.com": "JD", "🛍 Pinduoduo": "PDD", "🎮 Tencent": "TCEHY"}
 EU_STOCKS = {"🇪🇺 Европа ETF": "VGK", "🇩🇪 Германия ETF": "EWG", "🇫🇷 Франция ETF": "EWQ", "🇬🇧 Англия ETF": "EWU"}
-TOP_CRYPTO = {"₿ Bitcoin": "BTCUSDT", "♦️ Ethereum": "ETHUSDT", "💎 Solana": "SOLUSDT", "🟠 BNB": "BNBUSDT", "🔷 XRP": "XRPUSDT", "🐶 Dogecoin": "DOGEUSDT"}
+
+TOP_CRYPTO = {
+    "₿ Bitcoin": "bitcoin",
+    "♦️ Ethereum": "ethereum",
+    "💎 Solana": "solana",
+    "🟠 BNB": "binancecoin",
+    "🔷 XRP": "ripple",
+    "🐶 Dogecoin": "dogecoin",
+}
+
 INDICES = {"🇺🇸 S&P 500": "SPY", "📊 NASDAQ": "QQQ", "🏛 Dow Jones": "DIA", "🇷🇺 MOEX": "IMOEX.ME"}
 
 LANG = {
@@ -253,11 +275,12 @@ def get_price(ticker):
     except:
         return None
 
-def get_crypto_price(symbol):
+def get_crypto_price_coingecko(coin_id):
     try:
-        data = requests.get(f"https://api.binance.com/api/v3/ticker/24hr?symbol={symbol}", timeout=5).json()
-        current, prev = float(data["lastPrice"]), float(data["openPrice"])
-        return {"price": current, "change": ((current - prev) / prev) * 100 if prev else 0}
+        url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd&include_24hr_change=true"
+        r = requests.get(url, timeout=5).json()
+        data = r[coin_id]
+        return {"price": data["usd"], "change": data["usd_24h_change"]}
     except:
         return None
 
@@ -293,9 +316,6 @@ def get_news(ticker):
 def get_chart_link(ticker):
     if ticker.endswith(".ME"): return f"https://www.tradingview.com/chart/?symbol=MOEX%3A{ticker.replace('.ME','')}"
     return f"https://www.tradingview.com/chart/?symbol=NASDAQ%3A{ticker}"
-
-def get_crypto_chart_link(symbol):
-    return f"https://www.tradingview.com/chart/?symbol=BINANCE%3A{symbol}"
 
 # ─── КОМАНДЫ ВЛАДЕЛЬЦА ──────────────────────────────────
 @bot.message_handler(commands=['activate'])
@@ -436,7 +456,7 @@ def send_price(message):
     lang = get_lang(message)
     try:
         t = message.text.split()[1].upper()
-        d = get_crypto_price(t) if t.endswith("USDT") else get_price(t)
+        d = get_price(t)
         if d is None: bot.reply_to(message, lang["wrong_ticker"]); return
         e = "📈" if d["change"] >= 0 else "📉"
         bot.send_message(message.chat.id, lang["price"].format(name=t, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
@@ -448,10 +468,9 @@ def cmd_rsi(message):
     lang = get_lang(message)
     try:
         t = message.text.split()[1].upper()
-        ic = t.endswith("USDT")
-        d = get_crypto_price(t) if ic else get_price(t)
+        d = get_price(t)
         if d is None: bot.reply_to(message, lang["wrong_ticker"]); return
-        r = get_rsi(t, is_crypto=ic)
+        r = get_rsi(t)
         s = "🔴" if r>=70 else "🟢" if r<=30 else "⚪" if 40<=r<=60 else "🟠" if r>60 else "🟡"
         bot.send_message(message.chat.id, lang["rsi"].format(ticker=t, price=d["price"], rsi=r, signal=s), parse_mode="Markdown", reply_markup=main_menu(lang))
     except: bot.reply_to(message, lang["wrong_ticker"])
@@ -462,8 +481,7 @@ def cmd_chart(message):
     lang = get_lang(message)
     try:
         t = message.text.split()[1].upper()
-        if t.endswith("USDT"): d = get_crypto_price(t); l = get_crypto_chart_link(t)
-        else: d = get_price(t); l = get_chart_link(t)
+        d = get_price(t); l = get_chart_link(t)
         if d is None: bot.reply_to(message, lang["wrong_ticker"]); return
         bot.send_message(message.chat.id, lang["chart"].format(ticker=t, price=d["price"], link=l), parse_mode="Markdown", reply_markup=main_menu(lang), disable_web_page_preview=False)
     except: bot.reply_to(message, lang["wrong_ticker"])
@@ -474,10 +492,9 @@ def cmd_alert(message):
     lang = get_lang(message)
     try:
         p = message.text.split(); t, target = p[1].upper(), float(p[2])
-        ic = t.endswith("USDT")
-        cur = get_crypto_price(t)["price"] if ic else get_price(t)["price"]
+        cur = get_price(t)["price"]
         alerts = json.load(open("alerts.json")) if os.path.exists("alerts.json") else []
-        alerts.append({"chat_id": message.chat.id, "ticker": t, "target": target, "direction": "above" if target > cur else "below", "is_crypto": ic})
+        alerts.append({"chat_id": message.chat.id, "ticker": t, "target": target, "direction": "above" if target > cur else "below"})
         json.dump(alerts, open("alerts.json", "w"))
         bot.reply_to(message, lang["alert_set"].format(ticker=t, target=target), reply_markup=main_menu(lang))
     except: bot.reply_to(message, "❌ /alert TICKER PRICE")
@@ -492,7 +509,7 @@ def cmd_alerts(message):
     text = lang["alerts_list"]
     for i, a in enumerate(my, 1):
         try:
-            price = get_crypto_price(a["ticker"])["price"] if a.get("is_crypto") else get_price(a["ticker"])["price"]
+            price = get_price(a["ticker"])["price"]
             text += f"{i}. *{a['ticker']}*: target ${a['target']:.2f} | now ${price:.2f}\n"
         except: text += f"{i}. *{a['ticker']}*: target ${a['target']:.2f}\n"
     text += "\n/delalert NUMBER"
@@ -568,10 +585,10 @@ def handle_buttons(message):
     elif t == lang["btn_hype_day"]: show_hype_of_day(message, lang)
     elif t == lang["btn_signal_day"]: show_signal_of_day(message, lang)
     elif t == lang["btn_us_stocks"]: show_stock_group(message, lang, US_STOCKS, "🇺🇸 Акции США")
-    elif t == lang["btn_ru_stocks"]: show_stock_group(message, lang, RU_STOCKS, "🇷🇺 Акции РФ")
+    elif t == lang["btn_ru_stocks"]: show_ru_stocks(message, lang)
     elif t == lang["btn_cn_stocks"]: show_stock_group(message, lang, CN_STOCKS, "🇨🇳 Акции Китая")
     elif t == lang["btn_eu_stocks"]: show_stock_group(message, lang, EU_STOCKS, "🇪🇺 Акции Европы")
-    elif t == lang["btn_crypto_top"]: show_stock_group(message, lang, TOP_CRYPTO, "🪙 Крипто-топ", is_crypto=True)
+    elif t == lang["btn_crypto_top"]: show_crypto_top(message, lang)
     
     elif t == lang["btn_back"]: bot.send_message(uid, lang["main_menu"], reply_markup=main_menu(lang))
     
@@ -592,7 +609,7 @@ def handle_buttons(message):
     else:
         try:
             tick = t.upper()
-            d = get_crypto_price(tick) if tick.endswith("USDT") else get_price(tick)
+            d = get_price(tick)
             if d is None: bot.reply_to(message, lang["use_buttons"], reply_markup=main_menu(lang)); return
             e = "📈" if d["change"]>=0 else "📉"
             bot.send_message(uid, lang["price"].format(name=tick, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
@@ -615,7 +632,7 @@ def show_hype_of_day(message, lang):
     try:
         best = None
         best_change = 0
-        all_stocks = list(US_STOCKS.values()) + list(RU_STOCKS.values())
+        all_stocks = list(US_STOCKS.values())
         for ticker in all_stocks[:10]:
             d = get_price(ticker)
             if d and abs(d["change"]) > abs(best_change):
@@ -628,7 +645,7 @@ def show_hype_of_day(message, lang):
         else:
             text = lang["hype_of_day"] + "Рынок спокоен. Нет резких движений."
     except:
-        text = lang["hype_of_day"] + "Ошибка загрузки. Попробуйте позже."
+        text = lang["hype_of_day"] + "Ошибка загрузки."
     text += "\n━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
 
@@ -653,16 +670,35 @@ def show_signal_of_day(message, lang):
     text += "\n━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
 
-def show_stock_group(message, lang, stock_dict, title, is_crypto=False):
+def show_stock_group(message, lang, stock_dict, title):
     text = f"*{title}*\n\n"
     for name, ticker in stock_dict.items():
-        d = get_crypto_price(ticker) if is_crypto else get_price(ticker)
+        d = get_price(ticker)
         if d:
             e = "📈" if d["change"]>=0 else "📉"
             text += f"{name}: ${d['price']:.2f} {e} {d['change']:+.2f}%\n"
         else:
             text += f"{name}: ❌\n"
     text += "━━━━━━━━━━━━━━━"
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
+
+def show_ru_stocks(message, lang):
+    text = "🇷🇺 *Акции РФ*\n\nНажмите на ссылку для открытия графика TradingView:\n\n"
+    for name, link in RU_STOCKS.items():
+        text += f"{name}: [📊 График]({link})\n"
+    text += "\n━━━━━━━━━━━━━━━"
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang), disable_web_page_preview=True)
+
+def show_crypto_top(message, lang):
+    text = "🪙 *Крипто-топ (CoinGecko)*\n\n"
+    for name, coin_id in TOP_CRYPTO.items():
+        d = get_crypto_price_coingecko(coin_id)
+        if d:
+            e = "📈" if d["change"]>=0 else "📉"
+            text += f"{name}: ${d['price']:.2f} {e} {d['change']:+.2f}%\n"
+        else:
+            text += f"{name}: ❌\n"
+    text += "━━━━━━━━━━━━━━━\n_Данные: CoinGecko_"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
 
 # ─── МЕНЮ ОПЛАТЫ ────────────────────────────────────────
@@ -730,7 +766,7 @@ def show_tariff_ton(message, lang, days, amount):
 def process_ticker(message, lang):
     try:
         t = message.text.upper()
-        d = get_crypto_price(t) if t.endswith("USDT") else get_price(t)
+        d = get_price(t)
         if d is None: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang)); return
         e = "📈" if d["change"]>=0 else "📉"
         bot.send_message(message.chat.id, lang["price"].format(name=t, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
@@ -738,18 +774,19 @@ def process_ticker(message, lang):
 
 def process_crypto_ticker(message, lang):
     try:
-        t = message.text.upper(); d = get_crypto_price(t)
+        t = message.text.lower()
+        d = get_crypto_price_coingecko(t)
         if d is None: bot.reply_to(message, lang["wrong_ticker"], reply_markup=crypto_menu(lang)); return
         e = "📈" if d["change"]>=0 else "📉"
-        bot.send_message(message.chat.id, lang["price"].format(name=t, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=crypto_menu(lang))
+        bot.send_message(message.chat.id, lang["price"].format(name=t.upper(), price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=crypto_menu(lang))
     except: bot.reply_to(message, lang["wrong_ticker"], reply_markup=crypto_menu(lang))
 
 def process_rsi(message, lang):
     try:
-        t = message.text.upper(); ic = t.endswith("USDT")
-        d = get_crypto_price(t) if ic else get_price(t)
+        t = message.text.upper()
+        d = get_price(t)
         if d is None: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang)); return
-        r = get_rsi(t, is_crypto=ic)
+        r = get_rsi(t)
         s = "🔴" if r>=70 else "🟢" if r<=30 else "⚪" if 40<=r<=60 else "🟠" if r>60 else "🟡"
         bot.send_message(message.chat.id, lang["rsi"].format(ticker=t, price=d["price"], rsi=r, signal=s), parse_mode="Markdown", reply_markup=main_menu(lang))
     except: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang))
@@ -757,8 +794,7 @@ def process_rsi(message, lang):
 def process_chart(message, lang):
     try:
         t = message.text.upper()
-        if t.endswith("USDT"): d = get_crypto_price(t); l = get_crypto_chart_link(t)
-        else: d = get_price(t); l = get_chart_link(t)
+        d = get_price(t); l = get_chart_link(t)
         if d is None: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang)); return
         bot.send_message(message.chat.id, lang["chart"].format(ticker=t, price=d["price"], link=l), parse_mode="Markdown", reply_markup=main_menu(lang), disable_web_page_preview=False)
     except: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang))
@@ -767,8 +803,7 @@ def show_watchlist(message, lang):
     text = lang["stock_list"]
     for t in WATCHLIST:
         d = get_price(t)
-        if d:
-            text += f"• *{t}*: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n"
+        if d: text += f"• *{t}*: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n"
         else: text += f"• *{t}*: ❌\n"
     text += "━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
@@ -829,21 +864,21 @@ def show_news_movers(message, lang):
 def show_crypto_list(message, lang):
     text = lang["crypto_list"]
     for t in CRYPTO_LIST:
-        d = get_crypto_price(t)
-        if d: text += f"• *{t.replace('USDT','')}*: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n"
+        d = get_crypto_price_coingecko(t)
+        if d: text += f"• *{t.capitalize()}*: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n"
         else: text += f"• *{t}*: ❌\n"
-    text += "━━━━━━━━━━━━━━━"
+    text += "━━━━━━━━━━━━━━━\n_Данные: CoinGecko_"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=crypto_menu(lang))
 
 def show_crypto_potential(message, lang):
     dl = []
     for t in CRYPTO_LIST:
-        d = get_crypto_price(t)
-        if d: dl.append({"ticker": t.replace("USDT",""), "rsi": get_rsi(t, is_crypto=True), "price": d["price"]})
-    dl.sort(key=lambda x: x["rsi"])
-    pot = [d for d in dl if d["rsi"] < 45][:5]
-    text = (lang["crypto_potential"] + "\n".join(f"{'🟢' if d['rsi']<30 else '🟡'} *{d['ticker']}*: RSI {d['rsi']} | ${d['price']:.2f}" for d in pot)) if pot else lang["no_candidates"]
-    text += "\n━━━━━━━━━━━━━━━"
+        d = get_crypto_price_coingecko(t)
+        if d: dl.append({"ticker": t.capitalize(), "price": d["price"], "change": d["change"]})
+    dl.sort(key=lambda x: x["change"])
+    pot = [d for d in dl if d["change"] < -2][:5]
+    text = (lang["crypto_potential"] + "\n".join(f"🟢 *{d['ticker']}*: ${d['price']:.2f} ({d['change']:+.2f}%)" for d in pot)) if pot else lang["no_candidates"]
+    text += "\n━━━━━━━━━━━━━━━\n_Данные: CoinGecko_"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=crypto_menu(lang))
 
 class HealthHandler(BaseHTTPRequestHandler):
