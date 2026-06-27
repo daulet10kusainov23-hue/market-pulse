@@ -15,6 +15,7 @@ OWNER_ID = int(os.getenv("OWNER_ID", "453561961"))
 OWNER_USERNAME = "@Kusainov10"
 CARD_NUMBER = "2200 7001 5852 1475"
 USDT_ADDRESS = "0x0AC33B189ef7CAa33a8e4655A19318ACADD057a5"
+TON_ADDRESS = "UQBpNSeDQ79erS--C-2L3YcMxCMPdB6kp2--gS-hwRM-l8B7"
 FREE_DAYS = 7
 
 bot = telebot.TeleBot(TOKEN)
@@ -26,7 +27,6 @@ LANG_DB = DB.table("languages")
 WATCHLIST = ["AAPL", "TSLA", "GOOGL", "MSFT", "AMZN", "META", "NVDA", "NFLX", "AMD", "INTC"]
 CRYPTO_LIST = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "DOTUSDT"]
 
-# Полный словарь LANG оставлен кратким для читаемости
 LANG = {
     "ru": {
         "name": "🇷🇺 Русский", "choose": "🌐 Выберите язык:",
@@ -60,9 +60,12 @@ LANG = {
         "tariff_30_card": "📅 *30 дней — 299₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 299₽ на карту\n2. Комментарий: *«Market Pulse 30 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
         "tariff_90_card": "📅 *90 дней — 699₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 699₽ на карту\n2. Комментарий: *«Market Pulse 90 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
         "tariff_365_card": "📅 *365 дней — 1999₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 1999₽ на карту\n2. Комментарий: *«Market Pulse 365 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
-        "tariff_30_crypto": "🪙 *30 дней — 10 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 10 USDT на адрес выше\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}\n\nДоступ активируется после подтверждения.",
-        "tariff_90_crypto": "🪙 *90 дней — 25 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 25 USDT на адрес выше\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}\n\nДоступ активируется после подтверждения.",
-        "tariff_365_crypto": "🪙 *365 дней — 70 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 70 USDT на адрес выше\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}\n\nДоступ активируется после подтверждения.",
+        "tariff_30_usdt": "🪙 *30 дней — 10 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 10 USDT\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}",
+        "tariff_90_usdt": "🪙 *90 дней — 25 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 25 USDT\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}",
+        "tariff_365_usdt": "🪙 *365 дней — 70 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 70 USDT\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}",
+        "tariff_30_ton": "💎 *30 дней — 10 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Инструкция:*\n1. Откройте @wallet в Telegram\n2. Отправьте 10 TON на адрес выше\n3. Отправьте скриншот и ваш ID → {owner}",
+        "tariff_90_ton": "💎 *90 дней — 25 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Инструкция:*\n1. Откройте @wallet в Telegram\n2. Отправьте 25 TON на адрес выше\n3. Отправьте скриншот и ваш ID → {owner}",
+        "tariff_365_ton": "💎 *365 дней — 70 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Инструкция:*\n1. Откройте @wallet в Telegram\n2. Отправьте 70 TON на адрес выше\n3. Отправьте скриншот и ваш ID → {owner}",
         "btn_price": "📊 Цена", "btn_stocks": "📋 Акции",
         "btn_gainers": "🚀 Рост", "btn_losers": "📉 Падение",
         "btn_potential": "🔮 Потенциал", "btn_news": "📰 Новости",
@@ -77,15 +80,19 @@ LANG = {
         "btn_tariff_365": "📅 365 дн. — 1999₽",
         "btn_card_pay": "💳 Банковская карта (РФ)",
         "btn_crypto_pay": "🪙 Криптовалюта (USDT)",
+        "btn_ton_pay": "💎 Telegram Wallet (TON)",
         "btn_back_sub": "🔙 Назад",
         "crypto_tariff_30": "🪙 30 дн. — 10 USDT",
         "crypto_tariff_90": "🪙 90 дн. — 25 USDT",
         "crypto_tariff_365": "🪙 365 дн. — 70 USDT",
+        "ton_tariff_30": "💎 30 дн. — 10 TON",
+        "ton_tariff_90": "💎 90 дн. — 25 TON",
+        "ton_tariff_365": "💎 365 дн. — 70 TON",
     },
 }
-for code in ["en", "zh", "fr", "de", "es", "it"]:
+for code in ["en"]:
     LANG[code] = LANG["ru"].copy()
-    LANG[code]["name"] = {"en": "🇬🇧 English", "zh": "🇨🇳 中文", "fr": "🇫🇷 Français", "de": "🇩🇪 Deutsch", "es": "🇪🇸 Español", "it": "🇮🇹 Italiano"}[code]
+    LANG[code]["name"] = "🇬🇧 English"
 
 def get_user_lang(uid):
     User = Query()
@@ -99,8 +106,6 @@ def set_user_lang(uid, code):
 def get_lang(message):
     lang = get_user_lang(message.from_user.id)
     if lang: return lang
-    code = message.from_user.language_code
-    if code and code.startswith("ru"): return LANG["ru"]
     return LANG["en"]
 
 def lang_menu():
@@ -439,13 +444,17 @@ def handle_buttons(message):
     elif t == lang["btn_profile"]: cmd_me(message)
     elif t == lang["btn_subscribe"]: show_payment_options(message, lang)
     elif t == lang["btn_card_pay"]: show_card_tariffs(message, lang)
-    elif t == lang["btn_crypto_pay"]: show_crypto_tariffs(message, lang)
+    elif t == lang["btn_crypto_pay"]: show_usdt_tariffs(message, lang)
+    elif t == lang["btn_ton_pay"]: show_ton_tariffs(message, lang)
     elif t == lang["btn_tariff_30"]: show_tariff_card(message, lang, 30, 299)
     elif t == lang["btn_tariff_90"]: show_tariff_card(message, lang, 90, 699)
     elif t == lang["btn_tariff_365"]: show_tariff_card(message, lang, 365, 1999)
-    elif t == lang["crypto_tariff_30"]: show_tariff_crypto(message, lang, 30, 10)
-    elif t == lang["crypto_tariff_90"]: show_tariff_crypto(message, lang, 90, 25)
-    elif t == lang["crypto_tariff_365"]: show_tariff_crypto(message, lang, 365, 70)
+    elif t == lang["crypto_tariff_30"]: show_tariff_usdt(message, lang, 30, 10)
+    elif t == lang["crypto_tariff_90"]: show_tariff_usdt(message, lang, 90, 25)
+    elif t == lang["crypto_tariff_365"]: show_tariff_usdt(message, lang, 365, 70)
+    elif t == lang["ton_tariff_30"]: show_tariff_ton(message, lang, 30, 10)
+    elif t == lang["ton_tariff_90"]: show_tariff_ton(message, lang, 90, 25)
+    elif t == lang["ton_tariff_365"]: show_tariff_ton(message, lang, 365, 70)
     elif t == lang["btn_back_sub"]: bot.send_message(uid, lang["main_menu"], reply_markup=main_menu(lang))
     elif t == lang["btn_help"]: bot.send_message(uid, lang["help"], parse_mode="Markdown", reply_markup=main_menu(lang))
     else:
@@ -464,6 +473,7 @@ def show_payment_options(message, lang):
     markup.add(
         types.KeyboardButton(lang["btn_card_pay"]),
         types.KeyboardButton(lang["btn_crypto_pay"]),
+        types.KeyboardButton(lang["btn_ton_pay"]),
         types.KeyboardButton(lang["btn_back_sub"])
     )
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=markup)
@@ -479,8 +489,8 @@ def show_card_tariffs(message, lang):
     )
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=markup)
 
-def show_crypto_tariffs(message, lang):
-    text = "🪙 *Оплата криптовалютой (USDT ERC-20)*\n\nВыберите тариф:"
+def show_usdt_tariffs(message, lang):
+    text = "🪙 *Оплата USDT (ERC-20)*\n\nВыберите тариф:"
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(
         types.KeyboardButton(lang["crypto_tariff_30"]),
@@ -490,14 +500,30 @@ def show_crypto_tariffs(message, lang):
     )
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=markup)
 
+def show_ton_tariffs(message, lang):
+    text = "💎 *Оплата Telegram Wallet (TON)*\n\nВыберите тариф:"
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(
+        types.KeyboardButton(lang["ton_tariff_30"]),
+        types.KeyboardButton(lang["ton_tariff_90"]),
+        types.KeyboardButton(lang["ton_tariff_365"]),
+        types.KeyboardButton(lang["btn_back_sub"])
+    )
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=markup)
+
 def show_tariff_card(message, lang, days, price):
     key = f"tariff_{days}_card"
     text = lang[key].format(card=CARD_NUMBER, owner=OWNER_USERNAME)
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
 
-def show_tariff_crypto(message, lang, days, amount):
-    key = f"tariff_{days}_crypto"
+def show_tariff_usdt(message, lang, days, amount):
+    key = f"tariff_{days}_usdt"
     text = lang[key].format(usdt=USDT_ADDRESS, owner=OWNER_USERNAME)
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
+
+def show_tariff_ton(message, lang, days, amount):
+    key = f"tariff_{days}_ton"
+    text = lang[key].format(ton=TON_ADDRESS, owner=OWNER_USERNAME)
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
 
 # ─── ОБРАБОТЧИКИ ────────────────────────────────────────
