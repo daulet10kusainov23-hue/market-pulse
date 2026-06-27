@@ -26,6 +26,7 @@ LANG_DB = DB.table("languages")
 WATCHLIST = ["AAPL", "TSLA", "GOOGL", "MSFT", "AMZN", "META", "NVDA", "NFLX", "AMD", "INTC"]
 CRYPTO_LIST = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "DOTUSDT"]
 
+# Полный словарь LANG оставлен кратким для читаемости
 LANG = {
     "ru": {
         "name": "🇷🇺 Русский", "choose": "🌐 Выберите язык:",
@@ -39,39 +40,29 @@ LANG = {
         "rsi": "📈 *RSI {ticker}*\n💰 ${price:.2f}\n📊 RSI: *{rsi}* {signal}",
         "chart": "📉 *{ticker}*\n💰 ${price:.2f}\n[📊 TradingView]({link})",
         "alert_set": "🔔 {ticker} на ${target:.2f} установлен!",
-        "no_alerts": "🔔 Нет алертов.",
-        "alerts_list": "🔔 *Алерты:*\n\n",
+        "no_alerts": "🔔 Нет алертов.", "alerts_list": "🔔 *Алерты:*\n\n",
         "del_alert": "✅ {ticker} удалён",
-        "stock_list": "📋 *Акции:*\n\n",
-        "crypto_list": "🪙 *Крипта:*\n\n",
-        "gainers": "🚀 *Рост:*\n\n",
-        "losers": "📉 *Падение:*\n\n",
-        "potential": "🔮 *Потенциал:*\n\n",
-        "crypto_potential": "🔮 *Крипто потенциал:*\n\n",
-        "news": "📰 *Новости:*\n\n",
-        "no_news": "😴 Нет движений.",
+        "stock_list": "📋 *Акции:*\n\n", "crypto_list": "🪙 *Крипта:*\n\n",
+        "gainers": "🚀 *Рост:*\n\n", "losers": "📉 *Падение:*\n\n",
+        "potential": "🔮 *Потенциал:*\n\n", "crypto_potential": "🔮 *Крипто потенциал:*\n\n",
+        "news": "📰 *Новости:*\n\n", "no_news": "😴 Нет движений.",
         "no_candidates": "🔮 Нет кандидатов.",
         "help": "ℹ️ Market Pulse\n\n📊 Цена | 🪙 Крипта | 📈 RSI | 📉 График\n🔔 Алерты | 👤 Профиль | 🌐 Язык | 💳 Подписка",
-        "enter_ticker": "Введи тикер:",
-        "wrong_ticker": "❌ Неверный тикер",
-        "use_buttons": "Используй меню.",
-        "main_menu": "Главное меню",
-        "crypto_menu": "🪙 Крипта",
-        "searching_news": "📰 Ищу новости...",
-        "backup_ok": "✅ Бекап создан.",
-        "backup_fail": "❌ Ошибка.",
-        "log_empty": "Лог пуст.",
-        "no_users": "Нет пользователей.",
+        "enter_ticker": "Введи тикер:", "wrong_ticker": "❌ Неверный тикер",
+        "use_buttons": "Используй меню.", "main_menu": "Главное меню",
+        "crypto_menu": "🪙 Крипта", "searching_news": "📰 Ищу новости...",
+        "backup_ok": "✅ Бекап создан.", "backup_fail": "❌ Ошибка.",
+        "log_empty": "Лог пуст.", "no_users": "Нет пользователей.",
         "activated": "✅ {uid} активирован на {days} дн.",
         "notify_activated": "✅ Подписка продлена на {days} дней!",
         "users_list": "👥 *Пользователи:*\n\n",
-        "subscription_info": "💳 *Подписка Market Pulse*\n\nОсталось: *{days}* дн.\n\nВыберите тариф и способ оплаты:",
-        "tariff_30_card": "📅 *30 дней — 299₽* (карта)\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 299₽ на карту\n2. Комментарий: *«Market Pulse 30 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
-        "tariff_90_card": "📅 *90 дней — 699₽* (карта)\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 699₽ на карту\n2. Комментарий: *«Market Pulse 90 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
-        "tariff_365_card": "📅 *365 дней — 1999₽* (карта)\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 1999₽ на карту\n2. Комментарий: *«Market Pulse 365 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
-        "tariff_30_crypto": "🪙 *30 дней — 10 USDT* (крипто)\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 10 USDT\n2. Отправьте скриншот и ваш ID → {owner}\n\nДоступ активируется после подтверждения.",
-        "tariff_90_crypto": "🪙 *90 дней — 25 USDT* (крипто)\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 25 USDT\n2. Отправьте скриншот и ваш ID → {owner}\n\nДоступ активируется после подтверждения.",
-        "tariff_365_crypto": "🪙 *365 дней — 70 USDT* (крипто)\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 70 USDT\n2. Отправьте скриншот и ваш ID → {owner}\n\nДоступ активируется после подтверждения.",
+        "subscription_info": "💳 *Подписка Market Pulse*\n\nОсталось: *{days}* дн.\n\nВыберите способ оплаты:",
+        "tariff_30_card": "📅 *30 дней — 299₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 299₽ на карту\n2. Комментарий: *«Market Pulse 30 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
+        "tariff_90_card": "📅 *90 дней — 699₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 699₽ на карту\n2. Комментарий: *«Market Pulse 90 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
+        "tariff_365_card": "📅 *365 дней — 1999₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 1999₽ на карту\n2. Комментарий: *«Market Pulse 365 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
+        "tariff_30_crypto": "🪙 *30 дней — 10 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 10 USDT на адрес выше\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}\n\nДоступ активируется после подтверждения.",
+        "tariff_90_crypto": "🪙 *90 дней — 25 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 25 USDT на адрес выше\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}\n\nДоступ активируется после подтверждения.",
+        "tariff_365_crypto": "🪙 *365 дней — 70 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 70 USDT на адрес выше\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}\n\nДоступ активируется после подтверждения.",
         "btn_price": "📊 Цена", "btn_stocks": "📋 Акции",
         "btn_gainers": "🚀 Рост", "btn_losers": "📉 Падение",
         "btn_potential": "🔮 Потенциал", "btn_news": "📰 Новости",
@@ -84,12 +75,14 @@ LANG = {
         "btn_tariff_30": "📅 30 дн. — 299₽",
         "btn_tariff_90": "📅 90 дн. — 699₽",
         "btn_tariff_365": "📅 365 дн. — 1999₽",
-        "btn_crypto_pay": "🪙 Крипто (USDT)",
+        "btn_card_pay": "💳 Банковская карта (РФ)",
+        "btn_crypto_pay": "🪙 Криптовалюта (USDT)",
         "btn_back_sub": "🔙 Назад",
+        "crypto_tariff_30": "🪙 30 дн. — 10 USDT",
+        "crypto_tariff_90": "🪙 90 дн. — 25 USDT",
+        "crypto_tariff_365": "🪙 365 дн. — 70 USDT",
     },
 }
-
-# Остальные языки оставлены краткими для этого сообщения
 for code in ["en", "zh", "fr", "de", "es", "it"]:
     LANG[code] = LANG["ru"].copy()
     LANG[code]["name"] = {"en": "🇬🇧 English", "zh": "🇨🇳 中文", "fr": "🇫🇷 Français", "de": "🇩🇪 Deutsch", "es": "🇪🇸 Español", "it": "🇮🇹 Italiano"}[code]
@@ -444,11 +437,15 @@ def handle_buttons(message):
     elif t == lang["btn_back"]: bot.send_message(uid, lang["main_menu"], reply_markup=main_menu(lang))
     elif t == lang["btn_alerts"]: cmd_alerts(message)
     elif t == lang["btn_profile"]: cmd_me(message)
-    elif t == lang["btn_subscribe"]: show_subscription_menu(message, lang)
+    elif t == lang["btn_subscribe"]: show_payment_options(message, lang)
+    elif t == lang["btn_card_pay"]: show_card_tariffs(message, lang)
+    elif t == lang["btn_crypto_pay"]: show_crypto_tariffs(message, lang)
     elif t == lang["btn_tariff_30"]: show_tariff_card(message, lang, 30, 299)
     elif t == lang["btn_tariff_90"]: show_tariff_card(message, lang, 90, 699)
     elif t == lang["btn_tariff_365"]: show_tariff_card(message, lang, 365, 1999)
-    elif t == lang["btn_crypto_pay"]: show_crypto_options(message, lang)
+    elif t == lang["crypto_tariff_30"]: show_tariff_crypto(message, lang, 30, 10)
+    elif t == lang["crypto_tariff_90"]: show_tariff_crypto(message, lang, 90, 25)
+    elif t == lang["crypto_tariff_365"]: show_tariff_crypto(message, lang, 365, 70)
     elif t == lang["btn_back_sub"]: bot.send_message(uid, lang["main_menu"], reply_markup=main_menu(lang))
     elif t == lang["btn_help"]: bot.send_message(uid, lang["help"], parse_mode="Markdown", reply_markup=main_menu(lang))
     else:
@@ -459,55 +456,51 @@ def handle_buttons(message):
             bot.send_message(uid, lang["price"].format(ticker=tick, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
         except: bot.reply_to(message, lang["use_buttons"], reply_markup=main_menu(lang))
 
-def subscription_menu(lang):
+# ─── МЕНЮ ОПЛАТЫ ────────────────────────────────────────
+def show_payment_options(message, lang):
+    days = days_left(message.from_user.id)
+    text = lang["subscription_info"].format(days=days)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(
+        types.KeyboardButton(lang["btn_card_pay"]),
+        types.KeyboardButton(lang["btn_crypto_pay"]),
+        types.KeyboardButton(lang["btn_back_sub"])
+    )
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=markup)
+
+def show_card_tariffs(message, lang):
+    text = "💳 *Оплата картой (РФ)*\n\nВыберите тариф:"
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(
         types.KeyboardButton(lang["btn_tariff_30"]),
         types.KeyboardButton(lang["btn_tariff_90"]),
         types.KeyboardButton(lang["btn_tariff_365"]),
-        types.KeyboardButton(lang["btn_crypto_pay"]),
         types.KeyboardButton(lang["btn_back_sub"])
     )
-    return markup
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=markup)
 
-def show_subscription_menu(message, lang):
-    days = days_left(message.from_user.id)
-    bot.send_message(message.chat.id, lang["subscription_info"].format(days=days), parse_mode="Markdown", reply_markup=subscription_menu(lang))
+def show_crypto_tariffs(message, lang):
+    text = "🪙 *Оплата криптовалютой (USDT ERC-20)*\n\nВыберите тариф:"
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(
+        types.KeyboardButton(lang["crypto_tariff_30"]),
+        types.KeyboardButton(lang["crypto_tariff_90"]),
+        types.KeyboardButton(lang["crypto_tariff_365"]),
+        types.KeyboardButton(lang["btn_back_sub"])
+    )
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=markup)
 
 def show_tariff_card(message, lang, days, price):
     key = f"tariff_{days}_card"
     text = lang[key].format(card=CARD_NUMBER, owner=OWNER_USERNAME)
-    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=subscription_menu(lang))
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
 
-def show_crypto_options(message, lang):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    markup.add(
-        types.KeyboardButton("🪙 30 дн. — 10 USDT"),
-        types.KeyboardButton("🪙 90 дн. — 25 USDT"),
-        types.KeyboardButton("🪙 365 дн. — 70 USDT"),
-        types.KeyboardButton(lang["btn_back_sub"])
-    )
-    bot.send_message(message.chat.id, "🪙 *Оплата криптовалютой (USDT ERC-20)*\n\nВыберите тариф:", parse_mode="Markdown", reply_markup=markup)
-
-# ─── ОБРАБОТЧИКИ КРИПТО-ТАРИФОВ ────────────────────────
-@bot.message_handler(func=lambda m: m.text and m.text.startswith("🪙"))
-def handle_crypto_tariff(message):
-    uid = message.from_user.id
-    lang = get_lang(message)
-    if not is_allowed(uid): return
-    
-    t = message.text
-    if "10 USDT" in t: key = "tariff_30_crypto"
-    elif "25 USDT" in t: key = "tariff_90_crypto"
-    elif "70 USDT" in t: key = "tariff_365_crypto"
-    else: return
-    
+def show_tariff_crypto(message, lang, days, amount):
+    key = f"tariff_{days}_crypto"
     text = lang[key].format(usdt=USDT_ADDRESS, owner=OWNER_USERNAME)
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    markup.add(types.KeyboardButton(lang["btn_back_sub"]))
-    bot.send_message(uid, text, parse_mode="Markdown", reply_markup=markup)
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
 
-# ─── ОСТАЛЬНЫЕ ОБРАБОТЧИКИ ──────────────────────────────
+# ─── ОБРАБОТЧИКИ ────────────────────────────────────────
 def process_ticker(message, lang):
     try:
         t = message.text.upper()
