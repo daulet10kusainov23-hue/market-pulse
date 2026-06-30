@@ -3,12 +3,17 @@ import requests
 import json
 import os
 import threading
+import time
+import traceback
+import sys
+import subprocess
 from telebot import apihelper, types
 from tinydb import TinyDB, Query
 from datetime import datetime, timedelta
 import shutil
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
+# ─── НАСТРОЙКИ ──────────────────────────────────────────
 TOKEN = os.getenv("TOKEN", "")
 MASTER_KEY = os.getenv("MASTER_KEY", "default123")
 OWNER_ID = int(os.getenv("OWNER_ID", "453561961"))
@@ -23,6 +28,91 @@ bot = telebot.TeleBot(TOKEN)
 DB = TinyDB("users.json")
 USERS_DB = DB.table("users")
 LANG_DB = DB.table("languages")
+
+# ─── МОНИТОРИНГ И АВТОПОЧИНКА ───────────────────────────
+LAST_PING_FILE = "/opt/render/project/src/last_ping.txt"
+ERROR_LOG_FILE = "/opt/render/project/src/error.log"
+BOT_START_TIME = time.time()
+
+def save_ping():
+    try:
+        with open(LAST_PING_FILE, "w") as f:
+            f.write(str(time.time()))
+    except:
+        pass
+
+def get_last_ping():
+    try:
+        if os.path.exists(LAST_PING_FILE):
+            with open(LAST_PING_FILE) as f:
+                return float(f.read().strip())
+    except:
+        pass
+    return time.time()
+
+def log_error(error_text):
+    try:
+        with open(ERROR_LOG_FILE, "a") as f:
+            f.write(f"\n{'='*50}\n{datetime.now().isoformat()}\n{error_text}\n")
+    except:
+        pass
+
+def get_uptime():
+    """Возвращает время работы бота в читаемом виде."""
+    uptime_seconds = int(time.time() - BOT_START_TIME)
+    days = uptime_seconds // 86400
+    hours = (uptime_seconds % 86400) // 3600
+    minutes = (uptime_seconds % 3600) // 60
+    seconds = uptime_seconds % 60
+    
+    parts = []
+    if days > 0: parts.append(f"{days} дн")
+    if hours > 0: parts.append(f"{hours} ч")
+    if minutes > 0: parts.append(f"{minutes} мин")
+    parts.append(f"{seconds} сек")
+    return " ".join(parts)
+
+def get_bot_status():
+    """Возвращает статус бота для отображения пользователям."""
+    last_ping = get_last_ping()
+    time_since_ping = time.time() - last_ping
+    
+    if time_since_ping < 60:
+        status = "🟢 Онлайн"
+    elif time_since_ping < 120:
+        status = "🟡 Замедление"
+    elif time_since_ping < 300:
+        status = "🟠 Проблемы"
+    else:
+        status = "🔴 Офлайн"
+    
+    return {
+        "status": status,
+        "uptime": get_uptime(),
+        "last_ping_seconds": int(time_since_ping)
+    }
+
+def auto_restart_check():
+    """Проверяет, жив ли бот. Если нет — пытается перезапустить."""
+    while True:
+        time.sleep(60)
+        try:
+            last_ping = get_last_ping()
+            if time.time() - last_ping > 300:
+                log_error("AUTO-RESTART: Бот не отвечает более 5 минут. Попытка перезапуска.")
+                try:
+                    bot.send_message(OWNER_ID, "⚠️ Бот не отвечает более 5 минут. Пытаюсь перезапустить...")
+                except:
+                    pass
+                # Попытка перезапуска
+                try:
+                    os.execv(sys.executable, [sys.executable] + sys.argv)
+                except:
+                    pass
+        except:
+            pass
+
+threading.Thread(target=auto_restart_check, daemon=True).start()
 
 WATCHLIST = ["AAPL", "TSLA", "GOOGL", "MSFT", "AMZN", "META", "NVDA", "NFLX", "AMD", "INTC"]
 CRYPTO_LIST = ["bitcoin", "ethereum", "solana", "binancecoin", "ripple", "dogecoin", "cardano", "polkadot"]
@@ -90,6 +180,7 @@ LANG = {
         "hype_of_day": "🚀 *Хайп дня*\n\n",
         "signal_of_day": "🎯 *Сигнал дня*\n\n",
         "top_market_title": "🔥 *Топ рынка*\n\nВыберите раздел:",
+        "bot_status": "📡 *Статус бота*\n\nСтатус: {status}\nАптайм: {uptime}\nПоследний пинг: {ping} сек. назад",
         "btn_top_market": "🔥 Топ рынка",
         "btn_market_summary": "📊 Сводка рынка",
         "btn_hype_day": "🚀 Хайп дня",
@@ -164,6 +255,7 @@ LANG = {
         "hype_of_day": "🚀 *Hype of the Day*\n\n",
         "signal_of_day": "🎯 *Signal of the Day*\n\n",
         "top_market_title": "🔥 *Top Market*\n\nSelect section:",
+        "bot_status": "📡 *Bot Status*\n\nStatus: {status}\nUptime: {uptime}\nLast ping: {ping} sec ago",
         "btn_top_market": "🔥 Top Market",
         "btn_market_summary": "📊 Market Summary",
         "btn_hype_day": "🚀 Hype of Day",
@@ -272,7 +364,8 @@ def get_price(ticker):
         current = data["meta"]["regularMarketPrice"]
         prev = prices[-2] if len(prices) >= 2 and prices[-2] else current
         return {"price": current, "change": ((current - prev) / prev) * 100 if prev else 0}
-    except:
+    except Exception as e:
+        log_error(f"get_price({ticker}): {traceback.format_exc()}")
         return None
 
 def get_crypto_price_coingecko(coin_id):
@@ -281,7 +374,8 @@ def get_crypto_price_coingecko(coin_id):
         r = requests.get(url, timeout=5).json()
         data = r[coin_id]
         return {"price": data["usd"], "change": data["usd_24h_change"]}
-    except:
+    except Exception as e:
+        log_error(f"get_crypto_price({coin_id}): {traceback.format_exc()}")
         return None
 
 def get_rsi(ticker, period=14):
@@ -300,7 +394,8 @@ def get_rsi(ticker, period=14):
         avg_loss = sum(losses[-period:]) / period
         if avg_loss == 0: return 100
         return round(100 - (100 / (1 + avg_gain / avg_loss)), 1)
-    except:
+    except Exception as e:
+        log_error(f"get_rsi({ticker}): {traceback.format_exc()}")
         return 50
 
 def get_news(ticker):
@@ -313,7 +408,46 @@ def get_chart_link(ticker):
     if ticker.endswith(".ME"): return f"https://www.tradingview.com/chart/?symbol=MOEX%3A{ticker.replace('.ME','')}"
     return f"https://www.tradingview.com/chart/?symbol=NASDAQ%3A{ticker}"
 
+# ─── КОМАНДА СТАТУСА (ДОСТУПНА ВСЕМ) ──────────────────
+@bot.message_handler(commands=['status'])
+def cmd_status(message):
+    """Показывает статус бота для всех пользователей."""
+    lang = get_lang(message)
+    status = get_bot_status()
+    text = lang["bot_status"].format(
+        status=status["status"],
+        uptime=status["uptime"],
+        ping=status["last_ping_seconds"]
+    )
+    bot.reply_to(message, text, parse_mode="Markdown")
+
 # ─── КОМАНДЫ ВЛАДЕЛЬЦА ──────────────────────────────────
+@bot.message_handler(commands=['ping'])
+def cmd_ping(message):
+    """Проверка работоспособности бота."""
+    save_ping()
+    status = get_bot_status()
+    text = f"🟢 Понг!\nАптайм: {status['uptime']}\nПоследний пинг: {status['last_ping_seconds']} сек. назад"
+    bot.reply_to(message, text)
+
+@bot.message_handler(commands=['errors'])
+def cmd_errors(message):
+    """Показать последние ошибки."""
+    if message.from_user.id != OWNER_ID: return
+    try:
+        if os.path.exists(ERROR_LOG_FILE):
+            with open(ERROR_LOG_FILE) as f:
+                lines = f.readlines()[-20:]
+            if lines:
+                text = "📋 *Последние ошибки:*\n\n" + "".join(f"• {l}" for l in lines[-10:])
+                bot.reply_to(message, text[:4000], parse_mode="Markdown")
+            else:
+                bot.reply_to(message, "✅ Ошибок нет")
+        else:
+            bot.reply_to(message, "✅ Ошибок нет")
+    except:
+        bot.reply_to(message, "Не удалось прочитать лог")
+
 @bot.message_handler(commands=['activate'])
 def cmd_activate(message):
     lang = get_lang(message)
@@ -366,6 +500,7 @@ def cmd_backup(message):
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     uid = message.from_user.id
+    save_ping()
     args = message.text.split()
     is_invite = len(args) > 1 and args[1] == "invite"
     
@@ -450,6 +585,7 @@ def callback_lang(call):
 def send_price(message):
     if not is_allowed(message.from_user.id): return
     lang = get_lang(message)
+    save_ping()
     try:
         t = message.text.split()[1].upper()
         d = get_price(t)
@@ -462,6 +598,7 @@ def send_price(message):
 def cmd_rsi(message):
     if not is_allowed(message.from_user.id): return
     lang = get_lang(message)
+    save_ping()
     try:
         t = message.text.split()[1].upper()
         d = get_price(t)
@@ -475,6 +612,7 @@ def cmd_rsi(message):
 def cmd_chart(message):
     if not is_allowed(message.from_user.id): return
     lang = get_lang(message)
+    save_ping()
     try:
         t = message.text.split()[1].upper()
         d = get_price(t); l = get_chart_link(t)
@@ -486,6 +624,7 @@ def cmd_chart(message):
 def cmd_alert(message):
     if not is_allowed(message.from_user.id): return
     lang = get_lang(message)
+    save_ping()
     try:
         p = message.text.split(); t, target = p[1].upper(), float(p[2])
         cur = get_price(t)["price"]
@@ -499,6 +638,7 @@ def cmd_alert(message):
 def cmd_alerts(message):
     if not is_allowed(message.from_user.id): return
     lang = get_lang(message)
+    save_ping()
     alerts = json.load(open("alerts.json")) if os.path.exists("alerts.json") else []
     my = [a for a in alerts if a["chat_id"] == message.chat.id]
     if not my: bot.reply_to(message, lang["no_alerts"], reply_markup=main_menu(lang)); return
@@ -515,6 +655,7 @@ def cmd_alerts(message):
 def cmd_delalert(message):
     if not is_allowed(message.from_user.id): return
     lang = get_lang(message)
+    save_ping()
     try:
         idx = int(message.text.split()[1]) - 1
         alerts = json.load(open("alerts.json")) if os.path.exists("alerts.json") else []
@@ -528,6 +669,7 @@ def cmd_delalert(message):
 def cmd_me(message):
     if not is_allowed(message.from_user.id): return
     lang = get_lang(message)
+    save_ping()
     uid = message.from_user.id
     bot.send_message(uid, lang["profile"].format(uid=uid, days=days_left(uid), lang_name=lang["name"], owner=OWNER_USERNAME), parse_mode="Markdown", reply_markup=main_menu(lang))
 
@@ -535,6 +677,7 @@ def cmd_me(message):
 def cmd_lang(message):
     if not is_allowed(message.from_user.id): return
     lang = get_lang(message)
+    save_ping()
     bot.send_message(message.chat.id, lang["choose"], reply_markup=lang_menu())
 
 # ─── КНОПКИ ──────────────────────────────────────────────
@@ -542,6 +685,7 @@ def cmd_lang(message):
 def handle_buttons(message):
     uid = message.from_user.id
     lang = get_lang(message)
+    save_ping()
     
     if message.text == lang["btn_lang"]:
         bot.send_message(uid, lang["choose"], reply_markup=lang_menu())
@@ -867,6 +1011,7 @@ def show_crypto_potential(message, lang):
 
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        save_ping()
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"OK")
