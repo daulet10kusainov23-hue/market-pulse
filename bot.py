@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from io import BytesIO
 
+# ─── НАСТРОЙКИ ──────────────────────────────────────────
 TOKEN = os.getenv("TOKEN", "")
 MASTER_KEY = os.getenv("MASTER_KEY", "default123")
 DEEPSEEK_KEY = os.getenv("DEEPSEEK_KEY", "")
@@ -26,12 +27,15 @@ CARD_NUMBER = "2200 7001 5852 1475"
 USDT_ADDRESS = "0x0AC33B189ef7CAa33a8e4655A19318ACADD057a5"
 TON_ADDRESS = "UQBpNSeDQ79erS--C-2L3YcMxCMPdB6kp2--gS-hwRM-l8B7"
 FREE_DAYS = 7
+FREE_SIGNALS_PER_DAY = 3
+FIRST_PAYMENT_DISCOUNT = 20
 
 bot = telebot.TeleBot(TOKEN)
 
 DB = TinyDB("users.json")
 USERS_DB = DB.table("users")
 LANG_DB = DB.table("languages")
+SIGNALS_DB = DB.table("signals")
 
 LAST_PING_FILE = "/opt/render/project/src/last_ping.txt"
 ERROR_LOG_FILE = "/opt/render/project/src/error.log"
@@ -41,31 +45,18 @@ def save_ping():
     try:
         with open(LAST_PING_FILE, "w") as f:
             f.write(str(time.time()))
-    except:
-        pass
-
-def get_last_ping():
-    try:
-        if os.path.exists(LAST_PING_FILE):
-            with open(LAST_PING_FILE) as f:
-                return float(f.read().strip())
-    except:
-        pass
-    return time.time()
+    except: pass
 
 def log_error(error_text):
     try:
         with open(ERROR_LOG_FILE, "a") as f:
             f.write(f"\n{'='*50}\n{datetime.now().isoformat()}\n{error_text}\n")
-    except:
-        pass
+    except: pass
 
 def get_uptime():
     uptime_seconds = int(time.time() - BOT_START_TIME)
-    days = uptime_seconds // 86400
-    hours = (uptime_seconds % 86400) // 3600
-    minutes = (uptime_seconds % 3600) // 60
-    seconds = uptime_seconds % 60
+    days = uptime_seconds // 86400; hours = (uptime_seconds % 86400) // 3600
+    minutes = (uptime_seconds % 3600) // 60; seconds = uptime_seconds % 60
     parts = []
     if days > 0: parts.append(f"{days} дн")
     if hours > 0: parts.append(f"{hours} ч")
@@ -73,26 +64,27 @@ def get_uptime():
     parts.append(f"{seconds} сек")
     return " ".join(parts)
 
-def get_bot_status():
-    last_ping = get_last_ping()
-    time_since_ping = time.time() - last_ping
-    if time_since_ping < 60: status = "🟢 Онлайн"
-    elif time_since_ping < 120: status = "🟡 Замедление"
-    elif time_since_ping < 300: status = "🟠 Проблемы"
-    else: status = "🔴 Офлайн"
-    return {"status": status, "uptime": get_uptime(), "last_ping_seconds": int(time_since_ping)}
+def is_pro(user_id):
+    if user_id == OWNER_ID: return True
+    User = Query()
+    user = USERS_DB.get(User.id == user_id)
+    if not user: return False
+    return user.get("is_pro", False)
 
-def auto_restart_check():
-    while True:
-        time.sleep(60)
-        try:
-            last_ping = get_last_ping()
-            if time.time() - last_ping > 300:
-                log_error("AUTO-RESTART: Бот не отвечает более 5 минут.")
-        except:
-            pass
+def get_signals_today(user_id):
+    today = datetime.now().strftime("%Y-%m-%d")
+    User = Query()
+    entry = SIGNALS_DB.get((User.id == user_id) & (User.date == today))
+    return entry.get("count", 0) if entry else 0
 
-threading.Thread(target=auto_restart_check, daemon=True).start()
+def use_signal(user_id):
+    today = datetime.now().strftime("%Y-%m-%d")
+    User = Query()
+    entry = SIGNALS_DB.get((User.id == user_id) & (User.date == today))
+    if entry:
+        SIGNALS_DB.update({"count": entry["count"] + 1}, (User.id == user_id) & (User.date == today))
+    else:
+        SIGNALS_DB.insert({"id": user_id, "date": today, "count": 1})
 
 WATCHLIST = ["AAPL", "TSLA", "GOOGL", "MSFT", "AMZN", "META", "NVDA", "NFLX", "AMD", "INTC"]
 CRYPTO_LIST = ["bitcoin", "ethereum", "solana", "binancecoin", "ripple", "dogecoin", "cardano", "polkadot"]
@@ -109,9 +101,9 @@ LANG = {
         "name": "🇷🇺 Русский", "choose": "🌐 Выберите язык:", "lang_set": "Язык: Русский",
         "sub_expired": "⛔ Подписка истекла.", "wrong_key": "⛔ Неверный ключ.",
         "welcome_no_access": "👋 *Market Pulse*\n\nДоступ по подписке.\n📱 {owner}",
-        "welcome_trial": "👋 *Привет, {name}!*\n🎁 Пробный период: {days} дн.",
-        "welcome_back": "👋 *С возвращением, {name}!*\n💳 Подписка: *{days}* дн.\nЯзык: {lang_name}",
-        "profile": "👤 ID: `{uid}`\nПодписка: *{days}* дн.\nЯзык: {lang_name}\nВладелец: {owner}",
+        "welcome_trial": "👋 *Привет, {name}!*\n🎁 Пробный период: {days} дн.\n🤖 ИИ-сигналов: {sig_limit}/день\n🔓 PRO — безлимит + утренняя сводка + сравнение",
+        "welcome_back": "👋 *С возвращением, {name}!*\n💳 Подписка: *{days}* дн.\n{pro_status}",
+        "profile": "👤 ID: `{uid}`\nПодписка: *{days}* дн.\nСтатус: {pro_status}\nИИ-сигналов: {sig_today}/{sig_limit}\nВладелец: {owner}",
         "price": "*{name}*\n💰 ${price:.2f} {emoji} {change:+.2f}%",
         "rsi": "📈 *RSI {ticker}*\n💰 ${price:.2f}\n📊 RSI: *{rsi}* {signal}",
         "chart": "📉 *{ticker}*\n💰 ${price:.2f}\n[📊 TradingView]({link})",
@@ -123,51 +115,51 @@ LANG = {
         "news": "📰 *Новости:*\n\n", "no_news": "😴 Нет движений.", "no_candidates": "🔮 Нет кандидатов.",
         "help": """ℹ️ *Market Pulse — помощь*
 
-🤖 *ИИ-Сигнал* — анализ через DeepSeek AI: рекомендация покупать/продавать/держать + график со стрелкой + ссылка на TradingView
+🤖 *ИИ-Сигнал* — DeepSeek AI анализ + график + TradingView
+🆓 3 сигнала/день | 🔓 PRO — безлимит
 
-🔥 *Топ рынка* — сводка рынка, хайп дня, сигнал дня, акции США, РФ, Китая, Европы, крипто-топ
+🌅 *Утренняя сводка* — сигнал дня, топ-3 роста/падения (🔓 PRO)
+📊 *Сравнение* — сравнить несколько тикеров (🔓 PRO)
 
-📊 *Цена* — текущая цена и изменение за день любого тикера (AAPL, TSLA, BTCUSDT...)
-
-📋 *Акции* — список из 10 популярных акций с ценами
-
-🚀 *Рост* — топ-5 быстрорастущих акций
-
-📉 *Падение* — топ-5 падающих акций
-
-🔮 *Потенциал* — акции с низким RSI (возможен рост)
-
-📰 *Новости* — акции с сильным движением + новости
-
-📈 *RSI* — индикатор перекупленности/перепроданности
-
-📉 *График* — ссылка на TradingView
-
-🪙 *Крипта* — курс, список, потенциал криптовалют
-
-🔔 *Алерты* — уведомления по целевой цене
-
-👤 *Профиль* — ID, подписка, язык
-
-💳 *Подписка* — тарифы и оплата
-
-🌐 *Язык* — сменить язык
-
-📡 */status* — статус бота
-
-🤖 */signal AAPL* — ИИ-сигнал через команду""",
+🔥 *Топ рынка* — сводка рынка, акции США, РФ, Китая, Европы, крипто-топ
+📊 *Цена* — текущая цена любого тикера
+📋 *Акции* — 10 популярных акций
+🚀 *Рост* — топ-5 роста | 📉 *Падение* — топ-5 падения
+🔮 *Потенциал* — низкий RSI | 📰 *Новости* — акции на новостях
+📈 *RSI* — индикатор | 📉 *График* — TradingView
+🪙 *Крипта* — курс, список | 🔔 *Алерты* — уведомления
+👤 *Профиль* — ID, подписка | 💳 *Подписка* — тарифы
+🌐 *Язык* — RU/EN | 📡 */status* — статус""",
         "enter_ticker": "Введи тикер:", "wrong_ticker": "❌ Неверный тикер",
         "use_buttons": "Используй меню.", "main_menu": "Главное меню", "crypto_menu": "🪙 Крипта",
-        "searching_news": "📰 Ищу новости...", "backup_ok": "✅ Бекап создан.", "backup_fail": "❌ Ошибка.",
-        "log_empty": "Лог пуст.", "no_users": "Нет пользователей.",
+        "searching_news": "📰 Ищу новости...",
         "activated": "✅ {uid} активирован на {days} дн.", "notify_activated": "✅ Подписка продлена на {days} дней!",
         "users_list": "👥 *Пользователи:*\n\n",
-        "subscription_info": "💳 *Подписка Market Pulse*\n\nОсталось: *{days}* дн.\n\nВыберите способ оплаты:",
+        "subscription_info": "💳 *Подписка Market Pulse*\n\nОсталось: *{days}* дн.\n{pro_status}\n\nВыберите способ оплаты:",
         "market_summary": "📊 *Сводка рынка*\n\n", "hype_of_day": "🚀 *Хайп дня*\n\n",
         "signal_of_day": "🎯 *Сигнал дня*\n\n", "top_market_title": "🔥 *Топ рынка*\n\nВыберите раздел:",
-        "bot_status": "📡 *Статус бота*\n\nСтатус: {status}\nАптайм: {uptime}\nПоследний пинг: {ping} сек. назад",
-        "ai_signal": "🤖 *ИИ-сигнал для {ticker}*\n\nЦена: ${price:.2f} {emoji}\n📊 RSI: {rsi}\n📈 MACD: {macd}\n📰 Новости: {news_count} шт.\n\n🧠 *DeepSeek AI:*\n{analysis}\n\n📉 [Открыть график TradingView]({link})",
-        "ai_analyzing": "🤖 Анализирую {ticker} через DeepSeek AI...\nСтрою график...\nЭто займёт 10-15 секунд.",
+        "bot_status": "📡 *Статус бота*\n\nСтатус: {status}\nАптайм: {uptime}",
+        "ai_signal": "🤖 *ИИ-сигнал для {ticker}*\n\nЦена: ${price:.2f} {emoji}\n📊 RSI: {rsi}\n📈 MACD: {macd}\n📰 Новости: {news_count} шт.\n\n🧠 *DeepSeek AI:*\n{analysis}\n\n📉 [TradingView]({link})",
+        "ai_analyzing": "🤖 Анализирую {ticker}...",
+        "signal_limit": "⚠️ Лимит ИИ-сигналов исчерпан ({limit}/{limit}).\n🔓 PRO — безлимит: /subscribe",
+        "compare_title": "📊 *Сравнение тикеров*\n\n",
+        "compare_pro_only": "🔓 Сравнение доступно только в PRO-версии.\n/subscribe",
+        "morning_digest": """🌅 *Утренняя сводка Market Pulse*
+
+📊 *Индексы:*
+{indices}
+
+🚀 *Топ-3 роста:*
+{gainers}
+
+📉 *Топ-3 падения:*
+{losers}
+
+🎯 *Сигнал дня:* {signal}
+
+💡 *Совет:* следите за RSI ниже 30 — потенциал роста""",
+        "morning_digest_pro": "🔓 Утренняя сводка доступна только в PRO-версии.\n/subscribe",
+        "reminder_3days": "⏰ Ваш пробный период заканчивается через 3 дня!\n🔓 PRO со скидкой {discount}% при первой оплате!\n/subscribe",
         "btn_top_market": "🔥 Топ рынка", "btn_market_summary": "📊 Сводка рынка",
         "btn_hype_day": "🚀 Хайп дня", "btn_signal_day": "🎯 Сигнал дня",
         "btn_us_stocks": "🇺🇸 Акции США", "btn_ru_stocks": "🇷🇺 Акции РФ",
@@ -177,30 +169,33 @@ LANG = {
         "btn_crypto": "🪙 Крипта", "btn_alerts": "🔔 Алерты", "btn_profile": "👤 Профиль",
         "btn_subscribe": "💳 Подписка", "btn_help": "ℹ️ Помощь", "btn_lang": "🌐 Язык",
         "btn_crypto_price": "🪙 Курс", "btn_crypto_list": "📋 Список", "btn_crypto_potential": "🔮 Потенциал",
-        "btn_back": "🔙 Назад", "btn_tariff_30": "📅 30 дн. — 299₽", "btn_tariff_90": "📅 90 дн. — 699₽",
+        "btn_back": "🔙 Назад",
+        "btn_morning": "🌅 Утренняя сводка",
+        "btn_compare": "📊 Сравнение",
+        "btn_tariff_30": "📅 30 дн. — 299₽", "btn_tariff_90": "📅 90 дн. — 699₽",
         "btn_tariff_365": "📅 365 дн. — 1999₽", "btn_card_pay": "💳 Банковская карта (РФ)",
         "btn_crypto_pay": "🪙 Криптовалюта (USDT)", "btn_ton_pay": "💎 Telegram Wallet (TON)",
         "btn_back_sub": "🔙 Назад", "crypto_tariff_30": "🪙 30 дн. — 10 USDT",
         "crypto_tariff_90": "🪙 90 дн. — 25 USDT", "crypto_tariff_365": "🪙 365 дн. — 70 USDT",
         "ton_tariff_30": "💎 30 дн. — 10 TON", "ton_tariff_90": "💎 90 дн. — 25 TON",
         "ton_tariff_365": "💎 365 дн. — 70 TON",
-        "tariff_30_card": "📅 *30 дней — 299₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 299₽ на карту\n2. Комментарий: *«Market Pulse 30 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
-        "tariff_90_card": "📅 *90 дней — 699₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 699₽ на карту\n2. Комментарий: *«Market Pulse 90 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
-        "tariff_365_card": "📅 *365 дней — 1999₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 1999₽ на карту\n2. Комментарий: *«Market Pulse 365 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
-        "tariff_30_usdt": "🪙 *30 дней — 10 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 10 USDT\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}",
-        "tariff_90_usdt": "🪙 *90 дней — 25 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 25 USDT\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}",
-        "tariff_365_usdt": "🪙 *365 дней — 70 USDT*\n\n📤 Адрес USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Инструкция:*\n1. Отправьте ровно 70 USDT\n2. Сеть: Ethereum (ERC-20)\n3. Отправьте скриншот и ваш ID → {owner}",
-        "tariff_30_ton": "💎 *30 дней — 10 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Инструкция:*\n1. Откройте @wallet в Telegram\n2. Отправьте 10 TON на адрес выше\n3. Отправьте скриншот и ваш ID → {owner}",
-        "tariff_90_ton": "💎 *90 дней — 25 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Инструкция:*\n1. Откройте @wallet в Telegram\n2. Отправьте 25 TON на адрес выше\n3. Отправьте скриншот и ваш ID → {owner}",
-        "tariff_365_ton": "💎 *365 дней — 70 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Инструкция:*\n1. Откройте @wallet в Telegram\n2. Отправьте 70 TON на адрес выше\n3. Отправьте скриншот и ваш ID → {owner}",
+        "tariff_30_card": "📅 *30 дней — 299₽*\n\n💳 Карта: `{card}`\n\n⚠️ Переведите 299₽, комментарий: *«Market Pulse 30 дней»*\nСкриншот + ID → {owner}",
+        "tariff_90_card": "📅 *90 дней — 699₽*\n\n💳 Карта: `{card}`\n\n⚠️ Переведите 699₽, комментарий: *«Market Pulse 90 дней»*\nСкриншот + ID → {owner}",
+        "tariff_365_card": "📅 *365 дней — 1999₽*\n\n💳 Карта: `{card}`\n\n⚠️ Переведите 1999₽, комментарий: *«Market Pulse 365 дней»*\nСкриншот + ID → {owner}",
+        "tariff_30_usdt": "🪙 *30 дней — 10 USDT*\n\n📤 USDT (ERC-20): `{usdt}`\n\n⚠️ Отправьте 10 USDT. Скриншот + ID → {owner}",
+        "tariff_90_usdt": "🪙 *90 дней — 25 USDT*\n\n📤 USDT (ERC-20): `{usdt}`\n\n⚠️ Отправьте 25 USDT. Скриншот + ID → {owner}",
+        "tariff_365_usdt": "🪙 *365 дней — 70 USDT*\n\n📤 USDT (ERC-20): `{usdt}`\n\n⚠️ Отправьте 70 USDT. Скриншот + ID → {owner}",
+        "tariff_30_ton": "💎 *30 дней — 10 TON*\n\n📤 Telegram Wallet: `{ton}`\n\n⚠️ Отправьте 10 TON. Скриншот + ID → {owner}",
+        "tariff_90_ton": "💎 *90 дней — 25 TON*\n\n📤 Telegram Wallet: `{ton}`\n\n⚠️ Отправьте 25 TON. Скриншот + ID → {owner}",
+        "tariff_365_ton": "💎 *365 дней — 70 TON*\n\n📤 Telegram Wallet: `{ton}`\n\n⚠️ Отправьте 70 TON. Скриншот + ID → {owner}",
     },
     "en": {
         "name": "🇬🇧 English", "choose": "🌐 Choose language:", "lang_set": "Language: English",
         "sub_expired": "⛔ Subscription expired.", "wrong_key": "⛔ Invalid key.",
         "welcome_no_access": "👋 *Market Pulse*\n\nSubscription access.\n📱 {owner}",
-        "welcome_trial": "👋 *Hello, {name}!*\n🎁 Trial: {days} days.",
-        "welcome_back": "👋 *Welcome back, {name}!*\n💳 Subscription: *{days}* days\nLanguage: {lang_name}",
-        "profile": "👤 ID: `{uid}`\nSubscription: *{days}* days\nLanguage: {lang_name}\nOwner: {owner}",
+        "welcome_trial": "👋 *Hello, {name}!*\n🎁 Trial: {days} days.\n🤖 AI signals: {sig_limit}/day\n🔓 PRO — unlimited + digest + compare",
+        "welcome_back": "👋 *Welcome back, {name}!*\n💳 Subscription: *{days}* days\n{pro_status}",
+        "profile": "👤 ID: `{uid}`\nSubscription: *{days}* days\nStatus: {pro_status}\nAI signals: {sig_today}/{sig_limit}\nOwner: {owner}",
         "price": "*{name}*\n💰 ${price:.2f} {emoji} {change:+.2f}%",
         "rsi": "📈 *RSI {ticker}*\n💰 ${price:.2f}\n📊 RSI: *{rsi}* {signal}",
         "chart": "📉 *{ticker}*\n💰 ${price:.2f}\n[📊 TradingView]({link})",
@@ -212,211 +207,168 @@ LANG = {
         "news": "📰 *News:*\n\n", "no_news": "😴 No movements.", "no_candidates": "🔮 No candidates.",
         "help": """ℹ️ *Market Pulse — Help*
 
-🤖 *AI Signal* — DeepSeek AI analysis: buy/sell/hold recommendation + chart with arrow + TradingView link
+🤖 *AI Signal* — DeepSeek AI + chart + TradingView
+🆓 3/day | 🔓 PRO — unlimited
 
-🔥 *Top Market* — market summary, hype of day, signal of day, US/RU/CN/EU stocks, crypto top
+🌅 *Morning Digest* — signal + top 3 gainers/losers (🔓 PRO)
+📊 *Compare* — compare tickers (🔓 PRO)
 
-📊 *Price* — current price and daily change for any ticker
-
-📋 *Stocks* — 10 popular stocks with prices
-
-🚀 *Gainers* — top 5 growing stocks
-
-📉 *Losers* — top 5 falling stocks
-
-🔮 *Potential* — stocks with low RSI
-
-📰 *News* — stocks on news
-
-📈 *RSI* — overbought/oversold indicator
-
-📉 *Chart* — TradingView link
-
-🪙 *Crypto* — rates, list, potential
-
-🔔 *Alerts* — price target notifications
-
-👤 *Profile* — ID, subscription, language
-
-💳 *Subscribe* — plans and payment
-
-🌐 *Language* — change language
-
-📡 */status* — bot status
-
-🤖 */signal AAPL* — AI signal via command""",
+🔥 *Top Market* — summary, US/RU/CN/EU stocks, crypto
+📊 *Price* — any ticker | 📋 *Stocks* — top 10
+🚀 *Gainers* — top 5 | 📉 *Losers* — top 5
+🔮 *Potential* — low RSI | 📰 *News* — news movers
+📈 *RSI* — indicator | 📉 *Chart* — TradingView
+🪙 *Crypto* — rates | 🔔 *Alerts* — notifications
+👤 *Profile* — ID, sub | 💳 *Subscribe* — plans
+🌐 *Language* — RU/EN | 📡 */status* — bot status""",
         "enter_ticker": "Enter ticker:", "wrong_ticker": "❌ Invalid ticker",
         "use_buttons": "Use menu.", "main_menu": "Main menu", "crypto_menu": "🪙 Crypto",
-        "searching_news": "📰 Searching...", "backup_ok": "✅ Backup created.", "backup_fail": "❌ Failed.",
-        "log_empty": "Log empty.", "no_users": "No users.",
-        "activated": "✅ {uid} activated for {days} days.", "notify_activated": "✅ Subscription extended for {days} days!",
+        "searching_news": "📰 Searching...",
+        "activated": "✅ {uid} activated for {days} days.", "notify_activated": "✅ Subscription extended!",
         "users_list": "👥 *Users:*\n\n",
-        "subscription_info": "💳 *Subscription*\n\nLeft: *{days}* days\n\nChoose payment method:",
+        "subscription_info": "💳 *Subscription*\n\nLeft: *{days}* days\n{pro_status}\n\nChoose payment:",
         "market_summary": "📊 *Market Summary*\n\n", "hype_of_day": "🚀 *Hype of the Day*\n\n",
-        "signal_of_day": "🎯 *Signal of the Day*\n\n", "top_market_title": "🔥 *Top Market*\n\nSelect section:",
-        "bot_status": "📡 *Bot Status*\n\nStatus: {status}\nUptime: {uptime}\nLast ping: {ping} sec ago",
-        "ai_signal": "🤖 *AI Signal for {ticker}*\n\nPrice: ${price:.2f} {emoji}\n📊 RSI: {rsi}\n📈 MACD: {macd}\n📰 News: {news_count} items\n\n🧠 *DeepSeek AI:*\n{analysis}\n\n📉 [Open TradingView Chart]({link})",
-        "ai_analyzing": "🤖 Analyzing {ticker} with DeepSeek AI...\nBuilding chart...\nThis takes 10-15 seconds.",
-        "btn_top_market": "🔥 Top Market", "btn_market_summary": "📊 Market Summary",
-        "btn_hype_day": "🚀 Hype of Day", "btn_signal_day": "🎯 Signal of Day",
-        "btn_us_stocks": "🇺🇸 US Stocks", "btn_ru_stocks": "🇷🇺 Russian Stocks",
-        "btn_cn_stocks": "🇨🇳 China Stocks", "btn_eu_stocks": "🇪🇺 Europe Stocks", "btn_crypto_top": "🪙 Crypto Top",
-        "btn_price": "📊 Price", "btn_stocks": "📋 Stocks", "btn_gainers": "🚀 Gainers", "btn_losers": "📉 Losers",
+        "signal_of_day": "🎯 *Signal of the Day*\n\n", "top_market_title": "🔥 *Top Market*\n\nSelect:",
+        "bot_status": "📡 *Bot Status*\n\nStatus: {status}\nUptime: {uptime}",
+        "ai_signal": "🤖 *AI Signal for {ticker}*\n\nPrice: ${price:.2f} {emoji}\n📊 RSI: {rsi}\n📈 MACD: {macd}\n📰 News: {news_count}\n\n🧠 *DeepSeek AI:*\n{analysis}\n\n📉 [TradingView]({link})",
+        "ai_analyzing": "🤖 Analyzing {ticker}...",
+        "signal_limit": "⚠️ Signal limit reached ({limit}/{limit}).\n🔓 PRO — unlimited: /subscribe",
+        "compare_title": "📊 *Compare Tickers*\n\n",
+        "compare_pro_only": "🔓 Compare is PRO only.\n/subscribe",
+        "morning_digest": """🌅 *Morning Digest*
+
+📊 *Indices:* {indices}
+🚀 *Top 3 Gainers:* {gainers}
+📉 *Top 3 Losers:* {losers}
+🎯 *Signal of Day:* {signal}""",
+        "morning_digest_pro": "🔓 Morning digest is PRO only.\n/subscribe",
+        "reminder_3days": "⏰ Trial ends in 3 days!\n🔓 PRO with {discount}% off!\n/subscribe",
+        "btn_top_market": "🔥 Top Market", "btn_market_summary": "📊 Summary",
+        "btn_hype_day": "🚀 Hype", "btn_signal_day": "🎯 Signal",
+        "btn_us_stocks": "🇺🇸 US", "btn_ru_stocks": "🇷🇺 RU", "btn_cn_stocks": "🇨🇳 CN", "btn_eu_stocks": "🇪🇺 EU",
+        "btn_crypto_top": "🪙 Crypto", "btn_price": "📊 Price", "btn_stocks": "📋 Stocks",
+        "btn_gainers": "🚀 Gainers", "btn_losers": "📉 Losers",
         "btn_potential": "🔮 Potential", "btn_news": "📰 News", "btn_rsi": "📈 RSI", "btn_chart": "📉 Chart",
         "btn_crypto": "🪙 Crypto", "btn_alerts": "🔔 Alerts", "btn_profile": "👤 Profile",
         "btn_subscribe": "💳 Subscribe", "btn_help": "ℹ️ Help", "btn_lang": "🌐 Language",
         "btn_crypto_price": "🪙 Price", "btn_crypto_list": "📋 List", "btn_crypto_potential": "🔮 Potential",
-        "btn_back": "🔙 Back", "btn_tariff_30": "📅 30 d. — 299₽", "btn_tariff_90": "📅 90 d. — 699₽",
-        "btn_tariff_365": "📅 365 d. — 1999₽", "btn_card_pay": "💳 Bank Card (RF)",
-        "btn_crypto_pay": "🪙 Crypto (USDT)", "btn_ton_pay": "💎 Telegram Wallet (TON)",
-        "btn_back_sub": "🔙 Back", "crypto_tariff_30": "🪙 30 d. — 10 USDT",
-        "crypto_tariff_90": "🪙 90 d. — 25 USDT", "crypto_tariff_365": "🪙 365 d. — 70 USDT",
-        "ton_tariff_30": "💎 30 d. — 10 TON", "ton_tariff_90": "💎 90 d. — 25 TON",
-        "ton_tariff_365": "💎 365 d. — 70 TON",
-        "tariff_30_card": "📅 *30 days — 299₽*\n\n💳 Card: `{card}`\n\n⚠️ *Instructions:*\n1. Transfer 299₽ to the card\n2. Comment: *«Market Pulse 30 days»*\n3. Send screenshot + your ID → {owner}",
-        "tariff_90_card": "📅 *90 days — 699₽*\n\n💳 Card: `{card}`\n\n⚠️ *Instructions:*\n1. Transfer 699₽ to the card\n2. Comment: *«Market Pulse 90 days»*\n3. Send screenshot + your ID → {owner}",
-        "tariff_365_card": "📅 *365 days — 1999₽*\n\n💳 Card: `{card}`\n\n⚠️ *Instructions:*\n1. Transfer 1999₽ to the card\n2. Comment: *«Market Pulse 365 days»*\n3. Send screenshot + your ID → {owner}",
-        "tariff_30_usdt": "🪙 *30 days — 10 USDT*\n\n📤 USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Instructions:*\n1. Send exactly 10 USDT\n2. Network: Ethereum (ERC-20)\n3. Send screenshot + your ID → {owner}",
-        "tariff_90_usdt": "🪙 *90 days — 25 USDT*\n\n📤 USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Instructions:*\n1. Send exactly 25 USDT\n2. Network: Ethereum (ERC-20)\n3. Send screenshot + your ID → {owner}",
-        "tariff_365_usdt": "🪙 *365 days — 70 USDT*\n\n📤 USDT (ERC-20):\n`{usdt}`\n\n⚠️ *Instructions:*\n1. Send exactly 70 USDT\n2. Network: Ethereum (ERC-20)\n3. Send screenshot + your ID → {owner}",
-        "tariff_30_ton": "💎 *30 days — 10 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Instructions:*\n1. Open @wallet in Telegram\n2. Send 10 TON to the address above\n3. Send screenshot + your ID → {owner}",
-        "tariff_90_ton": "💎 *90 days — 25 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Instructions:*\n1. Open @wallet in Telegram\n2. Send 25 TON to the address above\n3. Send screenshot + your ID → {owner}",
-        "tariff_365_ton": "💎 *365 days — 70 TON*\n\n📤 Telegram Wallet:\n`{ton}`\n\n⚠️ *Instructions:*\n1. Open @wallet in Telegram\n2. Send 70 TON to the address above\n3. Send screenshot + your ID → {owner}",
+        "btn_back": "🔙 Back", "btn_morning": "🌅 Digest", "btn_compare": "📊 Compare",
+        "btn_tariff_30": "📅 30 d. — 299₽", "btn_tariff_90": "📅 90 d. — 699₽",
+        "btn_tariff_365": "📅 365 d. — 1999₽", "btn_card_pay": "💳 Card", "btn_crypto_pay": "🪙 USDT",
+        "btn_ton_pay": "💎 TON", "btn_back_sub": "🔙 Back",
+        "crypto_tariff_30": "🪙 30 d. — 10 USDT", "crypto_tariff_90": "🪙 90 d. — 25 USDT",
+        "crypto_tariff_365": "🪙 365 d. — 70 USDT", "ton_tariff_30": "💎 30 d. — 10 TON",
+        "ton_tariff_90": "💎 90 d. — 25 TON", "ton_tariff_365": "💎 365 d. — 70 TON",
+        "tariff_30_card": "📅 *30 days — 299₽*\n\n💳 Card: `{card}`\n\n⚠️ Transfer 299₽, comment: *«Market Pulse 30 days»*\nScreenshot + ID → {owner}",
+        "tariff_90_card": "📅 *90 days — 699₽*\n\n💳 Card: `{card}`\n\n⚠️ Transfer 699₽, comment: *«Market Pulse 90 days»*\nScreenshot + ID → {owner}",
+        "tariff_365_card": "📅 *365 days — 1999₽*\n\n💳 Card: `{card}`\n\n⚠️ Transfer 1999₽, comment: *«Market Pulse 365 days»*\nScreenshot + ID → {owner}",
+        "tariff_30_usdt": "🪙 *30 days — 10 USDT*\n\n📤 USDT: `{usdt}`\n\n⚠️ Send 10 USDT. Screenshot + ID → {owner}",
+        "tariff_90_usdt": "🪙 *90 days — 25 USDT*\n\n📤 USDT: `{usdt}`\n\n⚠️ Send 25 USDT. Screenshot + ID → {owner}",
+        "tariff_365_usdt": "🪙 *365 days — 70 USDT*\n\n📤 USDT: `{usdt}`\n\n⚠️ Send 70 USDT. Screenshot + ID → {owner}",
+        "tariff_30_ton": "💎 *30 days — 10 TON*\n\n📤 Wallet: `{ton}`\n\n⚠️ Send 10 TON. Screenshot + ID → {owner}",
+        "tariff_90_ton": "💎 *90 days — 25 TON*\n\n📤 Wallet: `{ton}`\n\n⚠️ Send 25 TON. Screenshot + ID → {owner}",
+        "tariff_365_ton": "💎 *365 days — 70 TON*\n\n📤 Wallet: `{ton}`\n\n⚠️ Send 70 TON. Screenshot + ID → {owner}",
     },
 }
 
 def get_user_lang(uid):
-    User = Query()
-    entry = LANG_DB.get(User.id == uid)
+    User = Query(); entry = LANG_DB.get(User.id == uid)
     return LANG.get(entry.get("lang"), LANG["ru"]) if entry else None
 
 def set_user_lang(uid, code):
-    User = Query()
-    LANG_DB.upsert({"id": uid, "lang": code}, User.id == uid)
+    User = Query(); LANG_DB.upsert({"id": uid, "lang": code}, User.id == uid)
 
 def get_lang(message):
     lang = get_user_lang(message.from_user.id)
     if lang: return lang
-    code = message.from_user.language_code
-    if code and code.startswith("ru"): return LANG["ru"]
-    return LANG["en"]
+    return LANG["ru"] if message.from_user.language_code and message.from_user.language_code.startswith("ru") else LANG["en"]
 
 def lang_menu():
     markup = types.InlineKeyboardMarkup(row_width=2)
-    markup.add(
-        types.InlineKeyboardButton("🇷🇺 Русский", callback_data="lang_ru"),
-        types.InlineKeyboardButton("🇬🇧 English", callback_data="lang_en"),
-    )
+    markup.add(types.InlineKeyboardButton("🇷🇺 Русский", callback_data="lang_ru"), types.InlineKeyboardButton("🇬🇧 English", callback_data="lang_en"))
     return markup
 
 def is_allowed(user_id):
     if user_id == OWNER_ID: return True
-    User = Query()
-    user = USERS_DB.get(User.id == user_id)
+    User = Query(); user = USERS_DB.get(User.id == user_id)
     if not user: return False
     return datetime.fromisoformat(user["expires"]) > datetime.now()
 
 def register_user(user_id):
     User = Query()
     if not USERS_DB.get(User.id == user_id):
-        USERS_DB.insert({"id": user_id, "expires": (datetime.now() + timedelta(days=FREE_DAYS)).isoformat()})
+        USERS_DB.insert({"id": user_id, "expires": (datetime.now() + timedelta(days=FREE_DAYS)).isoformat(), "is_pro": False})
         return True
     return False
 
 def days_left(user_id):
-    User = Query()
-    user = USERS_DB.get(User.id == user_id)
-    if user:
-        delta = datetime.fromisoformat(user["expires"]) - datetime.now()
-        return max(0, delta.days)
+    User = Query(); user = USERS_DB.get(User.id == user_id)
+    if user: return max(0, (datetime.fromisoformat(user["expires"]) - datetime.now()).days)
     return 0
 
-def extend_user(user_id, days):
-    User = Query()
-    user = USERS_DB.get(User.id == user_id)
+def extend_user(user_id, days, pro=False):
+    User = Query(); user = USERS_DB.get(User.id == user_id)
     if user:
         current = datetime.fromisoformat(user["expires"])
         if current < datetime.now(): current = datetime.now()
-        USERS_DB.update({"expires": (current + timedelta(days=days)).isoformat()}, User.id == user_id)
+        USERS_DB.update({"expires": (current + timedelta(days=days)).isoformat(), "is_pro": pro}, User.id == user_id)
     else:
-        USERS_DB.insert({"id": user_id, "expires": (datetime.now() + timedelta(days=days)).isoformat()})
+        USERS_DB.insert({"id": user_id, "expires": (datetime.now() + timedelta(days=days)).isoformat(), "is_pro": pro})
 
 def get_price(ticker):
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
-        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "5d", "interval": "1d"}, timeout=5)
-        data = r.json()["chart"]["result"][0]
-        prices = data["indicators"]["quote"][0]["close"]
-        current = data["meta"]["regularMarketPrice"]
-        prev = prices[-2] if len(prices) >= 2 and prices[-2] else current
+        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "2d", "interval": "1d"}, timeout=5)
+        data = r.json()["chart"]["result"][0]; prices = data["indicators"]["quote"][0]["close"]
+        current = data["meta"]["regularMarketPrice"]; prev = prices[-2] if len(prices) >= 2 and prices[-2] else current
         return {"price": current, "change": ((current - prev) / prev) * 100 if prev else 0}
-    except:
-        return None
+    except: return None
 
 def get_price_history(ticker, days=30):
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
         r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": f"{days}d", "interval": "1d"}, timeout=5)
         data = r.json()["chart"]["result"][0]
-        timestamps = data["timestamp"]
-        closes = data["indicators"]["quote"][0]["close"]
-        dates = [datetime.fromtimestamp(ts) for ts in timestamps]
-        return dates, closes
-    except:
-        return [], []
+        dates = [datetime.fromtimestamp(ts) for ts in data["timestamp"]]
+        return dates, data["indicators"]["quote"][0]["close"]
+    except: return [], []
 
 def get_crypto_price_coingecko(coin_id):
     try:
-        url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd&include_24hr_change=true"
-        r = requests.get(url, timeout=5).json()
-        data = r[coin_id]
-        return {"price": data["usd"], "change": data["usd_24h_change"]}
-    except:
-        return None
+        r = requests.get(f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd&include_24hr_change=true", timeout=5).json()
+        d = r[coin_id]; return {"price": d["usd"], "change": d["usd_24h_change"]}
+    except: return None
 
 def get_rsi(ticker, period=14):
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
         data = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "3mo", "interval": "1d"}, timeout=5).json()
-        closes = data["chart"]["result"][0]["indicators"]["quote"][0]["close"]
-        closes = [c for c in closes if c is not None]
+        closes = [c for c in data["chart"]["result"][0]["indicators"]["quote"][0]["close"] if c is not None]
         if len(closes) < period + 1: return 50
         gains, losses = [], []
         for i in range(1, len(closes)):
-            diff = closes[i] - closes[i-1]
-            gains.append(diff if diff > 0 else 0)
-            losses.append(-diff if diff < 0 else 0)
-        avg_gain = sum(gains[-period:]) / period
-        avg_loss = sum(losses[-period:]) / period
+            diff = closes[i] - closes[i-1]; gains.append(diff if diff > 0 else 0); losses.append(-diff if diff < 0 else 0)
+        avg_gain = sum(gains[-period:]) / period; avg_loss = sum(losses[-period:]) / period
         if avg_loss == 0: return 100
         return round(100 - (100 / (1 + avg_gain / avg_loss)), 1)
-    except:
-        return 50
+    except: return 50
 
 def get_macd(ticker):
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
         data = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "3mo", "interval": "1d"}, timeout=5).json()
-        closes = data["chart"]["result"][0]["indicators"]["quote"][0]["close"]
-        closes = [c for c in closes if c is not None]
+        closes = [c for c in data["chart"]["result"][0]["indicators"]["quote"][0]["close"] if c is not None]
         if len(closes) < 26: return "нет данных"
-        ema12 = sum(closes[-12:]) / 12
-        ema26 = sum(closes[-26:]) / 26
-        macd_line = ema12 - ema26
-        signal_line = (macd_line * 2) / 3
-        if macd_line > signal_line: return "↑ бычий"
-        else: return "↓ медвежий"
-    except:
-        return "нет данных"
+        ema12 = sum(closes[-12:]) / 12; ema26 = sum(closes[-26:]) / 26
+        return "↑ бычий" if (ema12 - ema26) > ((ema12 - ema26) * 2) / 3 else "↓ медвежий"
+    except: return "нет данных"
 
 def get_news(ticker):
     try:
-        data = requests.get(f"https://query1.finance.yahoo.com/v1/finance/search?q={ticker}", headers={"User-Agent": "Mozilla/5.0"}, timeout=5).json()
-        return data.get("news", [])[:3]
+        return requests.get(f"https://query1.finance.yahoo.com/v1/finance/search?q={ticker}", headers={"User-Agent": "Mozilla/5.0"}, timeout=5).json().get("news", [])[:3]
     except: return []
 
 def get_chart_link(ticker):
-    if ticker.endswith(".ME"): return f"https://www.tradingview.com/chart/?symbol=MOEX%3A{ticker.replace('.ME','')}"
     return f"https://www.tradingview.com/chart/?symbol=NASDAQ%3A{ticker}"
 
 def generate_signal_chart(ticker, dates, closes, recommendation):
@@ -427,57 +379,41 @@ def generate_signal_chart(ticker, dates, closes, recommendation):
     plt.figure(figsize=(10, 5))
     plt.plot(dates, closes, color='#38bdf8', linewidth=2, label=ticker)
     if "ПОКУПАТЬ" in recommendation.upper() or "BUY" in recommendation.upper():
-        color = '#22c55e'; arrow = '▲'; label = 'СИГНАЛ: ПОКУПАТЬ'
+        color, arrow, label = '#22c55e', '▲', 'СИГНАЛ: ПОКУПАТЬ'
     elif "ПРОДАВАТЬ" in recommendation.upper() or "SELL" in recommendation.upper():
-        color = '#ef4444'; arrow = '▼'; label = 'СИГНАЛ: ПРОДАВАТЬ'
+        color, arrow, label = '#ef4444', '▼', 'СИГНАЛ: ПРОДАВАТЬ'
     else:
-        color = '#f59e0b'; arrow = '◆'; label = 'СИГНАЛ: ДЕРЖАТЬ'
+        color, arrow, label = '#f59e0b', '◆', 'СИГНАЛ: ДЕРЖАТЬ'
     plt.scatter(dates[-1], closes[-1], color=color, s=200, marker='D', zorder=5, label=label)
     plt.annotate(f'{arrow} {label}', (dates[-1], closes[-1]), textcoords="offset points", xytext=(0, 20), ha='center', fontsize=12, color=color, fontweight='bold')
-    plt.title(f'Market Pulse — {ticker}', fontsize=14, color='#e2e8f0', pad=15)
-    plt.xlabel('Дата', color='#94a3b8'); plt.ylabel('Цена ($)', color='#94a3b8')
-    plt.grid(alpha=0.2, color='#94a3b8'); plt.legend()
-    plt.gca().set_facecolor('#0f172a'); plt.gcf().set_facecolor('#0f172a')
+    plt.title(f'Market Pulse — {ticker}', fontsize=14, color='#e2e8f0'); plt.xlabel('Дата', color='#94a3b8'); plt.ylabel('Цена ($)', color='#94a3b8')
+    plt.grid(alpha=0.2, color='#94a3b8'); plt.legend(); plt.gca().set_facecolor('#0f172a'); plt.gcf().set_facecolor('#0f172a')
+    for spine in ['top', 'right']: plt.gca().spines[spine].set_visible(False)
     plt.gca().spines['bottom'].set_color('#334155'); plt.gca().spines['left'].set_color('#334155')
-    plt.gca().spines['top'].set_visible(False); plt.gca().spines['right'].set_visible(False)
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d.%m'))
-    plt.gca().tick_params(colors='#94a3b8')
-    plt.tight_layout()
-    buf = BytesIO(); plt.savefig(buf, format='png', dpi=100, facecolor='#0f172a'); buf.seek(0); plt.close()
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d.%m')); plt.gca().tick_params(colors='#94a3b8')
+    plt.tight_layout(); buf = BytesIO(); plt.savefig(buf, format='png', dpi=100, facecolor='#0f172a'); buf.seek(0); plt.close()
     return buf
 
-def deepseek_analysis(ticker, price, rsi, macd, news_list):
-    if not DEEPSEEK_KEY: return "⚠️ DeepSeek API не настроен."
-    news_text = ""
-    for n in news_list[:3]: news_text += f"- {n.get('title', '')[:100]}\n"
-    prompt = f"""Ты — финансовый аналитик. Дай краткую рекомендацию по активу {ticker}.
-Текущая цена: ${price:.2f}
-RSI (14): {rsi}
-MACD: {macd}
-Новости: {news_text if news_text else "Нет"}
-Ответь строго в формате:
-РЕКОМЕНДАЦИЯ: [ПОКУПАТЬ / ПРОДАВАТЬ / ДЕРЖАТЬ]
-ПРИЧИНА: [1-2 предложения]
-РИСК: [низкий / средний / высокий]
-ГОРИЗОНТ: [краткосрочный / среднесрочный / долгосрочный]"""
+def deepseek_analysis(ticker, price, rsi, macd, news_list, extended=False):
+    if not DEEPSEEK_KEY: return "⚠️ API не настроен."
+    news_text = "".join(f"- {n.get('title', '')[:100]}\n" for n in news_list[:3])
+    prompt = f"""Ты — финансовый аналитик. {'Дай расширенный анализ' if extended else 'Дай краткую рекомендацию'} по активу {ticker}.
+Цена: ${price:.2f}, RSI: {rsi}, MACD: {macd}, Новости: {news_text or 'Нет'}
+Ответь: РЕКОМЕНДАЦИЯ: [ПОКУПАТЬ/ПРОДАВАТЬ/ДЕРЖАТЬ]
+ПРИЧИНА: [1-2 предложения]{' ОБЪЁМ: [оценка]' if extended else ''}
+РИСК: [низкий/средний/высокий]
+ГОРИЗОНТ: [краткосрочный/среднесрочный/долгосрочный]"""
     try:
-        r = requests.post("https://api.deepseek.com/v1/chat/completions", headers={"Authorization": f"Bearer {DEEPSEEK_KEY}", "Content-Type": "application/json"}, json={"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}], "max_tokens": 200, "temperature": 0.3}, timeout=20)
+        r = requests.post("https://api.deepseek.com/v1/chat/completions", headers={"Authorization": f"Bearer {DEEPSEEK_KEY}", "Content-Type": "application/json"}, json={"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}], "max_tokens": 300 if extended else 200, "temperature": 0.3}, timeout=20)
         data = r.json()
-        if "choices" in data: return data["choices"][0]["message"]["content"].strip()
-        return "⚠️ Ошибка анализа."
-    except: return "⚠️ Сервис временно недоступен."
+        return data["choices"][0]["message"]["content"].strip() if "choices" in data else "⚠️ Ошибка."
+    except: return "⚠️ Сервис недоступен."
 
 # ─── КОМАНДЫ ────────────────────────────────────────────
 @bot.message_handler(commands=['status'])
 def cmd_status(message):
-    lang = get_lang(message)
-    s = get_bot_status()
-    bot.reply_to(message, lang["bot_status"].format(status=s["status"], uptime=s["uptime"], ping=s["last_ping_seconds"]), parse_mode="Markdown")
-
-@bot.message_handler(commands=['ping'])
-def cmd_ping(message):
-    save_ping()
-    bot.reply_to(message, f"🟢 Понг!\nАптайм: {get_bot_status()['uptime']}")
+    lang = get_lang(message); s = get_bot_status()
+    bot.reply_to(message, lang["bot_status"].format(status=s["status"], uptime=s["uptime"]), parse_mode="Markdown")
 
 @bot.message_handler(commands=['activate'])
 def cmd_activate(message):
@@ -486,50 +422,31 @@ def cmd_activate(message):
         p = message.text.split()
         if p[1] != MASTER_KEY: bot.reply_to(message, lang["wrong_key"]); return
         uid = int(p[2]); days = int(p[3]) if len(p) > 3 else 30
-        extend_user(uid, days)
+        extend_user(uid, days, pro=True)
         bot.reply_to(message, lang["activated"].format(uid=uid, days=days))
         bot.send_message(uid, lang["notify_activated"].format(days=days))
     except: bot.reply_to(message, "❌ /activate KEY ID DAYS")
 
-@bot.message_handler(commands=['extend'])
-def cmd_extend(message):
-    lang = get_lang(message)
-    try:
-        p = message.text.split()
-        if p[1] != MASTER_KEY: bot.reply_to(message, lang["wrong_key"]); return
-        uid = int(p[2]); days = int(p[3])
-        extend_user(uid, days)
-        bot.reply_to(message, lang["activated"].format(uid=uid, days=days))
-        bot.send_message(uid, lang["notify_activated"].format(days=days))
-    except: bot.reply_to(message, "❌ /extend KEY ID DAYS")
-
 @bot.message_handler(commands=['users'])
 def cmd_users(message):
     lang = get_lang(message)
-    p = message.text.split()
-    if len(p) < 2 or p[1] != MASTER_KEY: bot.reply_to(message, "⛔ /users KEY"); return
+    if message.text.split()[-1] != MASTER_KEY: bot.reply_to(message, "⛔"); return
     users = USERS_DB.all()
-    if not users: bot.reply_to(message, lang["no_users"]); return
+    if not users: bot.reply_to(message, "Нет пользователей."); return
     text = lang["users_list"]
     for u in users:
         exp = datetime.fromisoformat(u["expires"]); days = (exp - datetime.now()).days
-        text += f"{'✅' if days > 0 else '❌'} `{u['id']}` | {max(0, days)} d.\n"
+        text += f"{'✅' if days > 0 else '❌'} `{u['id']}` | {max(0, days)} дн | {'🔓 PRO' if u.get('is_pro') else '🆓 Free'}\n"
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
-
-@bot.message_handler(commands=['backup'])
-def cmd_backup(message):
-    lang = get_lang(message)
-    p = message.text.split()
-    if len(p) < 2 or p[1] != MASTER_KEY: bot.reply_to(message, "⛔ /backup KEY"); return
-    try:
-        shutil.copy("users.json", "backup_users.json")
-        bot.reply_to(message, lang["backup_ok"])
-    except: bot.reply_to(message, lang["backup_fail"])
 
 @bot.message_handler(commands=['signal'])
 def cmd_signal(message):
-    if not is_allowed(message.from_user.id): lang = get_lang(message); bot.reply_to(message, lang["sub_expired"]); return
-    lang = get_lang(message); save_ping()
+    if not is_allowed(message.from_user.id): return
+    lang = get_lang(message); uid = message.from_user.id
+    if not is_pro(uid):
+        sigs = get_signals_today(uid)
+        if sigs >= FREE_SIGNALS_PER_DAY:
+            bot.reply_to(message, lang["signal_limit"].format(limit=FREE_SIGNALS_PER_DAY)); return
     try:
         p = message.text.split()
         if len(p) < 2: bot.reply_to(message, "❌ /signal AAPL"); return
@@ -538,20 +455,55 @@ def cmd_signal(message):
         d = get_price(ticker)
         if d is None: bot.edit_message_text("❌ Неверный тикер", message.chat.id, sm.message_id); return
         rsi = get_rsi(ticker); macd = get_macd(ticker); news = get_news(ticker)
-        dates, closes = get_price_history(ticker, 30); link = get_chart_link(ticker)
-        analysis = deepseek_analysis(ticker, d["price"], rsi, macd, news)
+        dates, closes = get_price_history(ticker, 30)
+        extended = is_pro(uid)
+        analysis = deepseek_analysis(ticker, d["price"], rsi, macd, news, extended)
         buf = generate_signal_chart(ticker, dates, closes, analysis)
         emoji = "📈" if d["change"] >= 0 else "📉"
-        text = lang["ai_signal"].format(ticker=ticker, emoji=emoji, price=d["price"], rsi=rsi, macd=macd, news_count=len(news), analysis=analysis, link=link)
-        if buf:
-            bot.delete_message(message.chat.id, sm.message_id)
-            bot.send_photo(message.chat.id, buf, caption=text, parse_mode="Markdown")
-        else:
-            bot.edit_message_text(text, message.chat.id, sm.message_id, parse_mode="Markdown", disable_web_page_preview=True)
+        text = lang["ai_signal"].format(ticker=ticker, emoji=emoji, price=d["price"], rsi=rsi, macd=macd, news_count=len(news), analysis=analysis, link=get_chart_link(ticker))
+        if not is_pro(uid): use_signal(uid)
+        if buf: bot.delete_message(message.chat.id, sm.message_id); bot.send_photo(message.chat.id, buf, caption=text, parse_mode="Markdown")
+        else: bot.edit_message_text(text, message.chat.id, sm.message_id, parse_mode="Markdown", disable_web_page_preview=True)
     except Exception as e:
-        log_error(f"signal: {traceback.format_exc()}")
-        try: bot.edit_message_text("❌ Ошибка анализа", message.chat.id, sm.message_id)
-        except: bot.reply_to(message, "❌ Ошибка анализа")
+        log_error(f"signal: {e}")
+        try: bot.edit_message_text("❌ Ошибка", message.chat.id, sm.message_id)
+        except: bot.reply_to(message, "❌ Ошибка")
+
+@bot.message_handler(commands=['compare'])
+def cmd_compare(message):
+    if not is_allowed(message.from_user.id): return
+    lang = get_lang(message); uid = message.from_user.id
+    if not is_pro(uid): bot.reply_to(message, lang["compare_pro_only"]); return
+    try:
+        parts = message.text.split()[1:]
+        if len(parts) < 2: bot.reply_to(message, "❌ /compare AAPL TSLA MSFT"); return
+        text = lang["compare_title"]
+        for t in parts[:5]:
+            d = get_price(t.upper())
+            if d:
+                rsi = get_rsi(t.upper()); macd = get_macd(t.upper())
+                e = "📈" if d["change"] >= 0 else "📉"
+                text += f"*{t.upper()}*: ${d['price']:.2f} {e} {d['change']:+.2f}% | RSI: {rsi} | MACD: {macd}\n"
+            else: text += f"*{t.upper()}*: ❌\n"
+        text += "━━━━━━━━━━━━━━━"
+        bot.reply_to(message, text, parse_mode="Markdown")
+    except: bot.reply_to(message, "❌ Ошибка")
+
+@bot.message_handler(commands=['morning'])
+def cmd_morning(message):
+    if not is_allowed(message.from_user.id): return
+    lang = get_lang(message)
+    if not is_pro(message.from_user.id): bot.reply_to(message, lang["morning_digest_pro"]); return
+    indices = " ".join(f"{n}: ${get_price(t)['price']:.2f}" if get_price(t) else f"{n}: ❌" for n, t in INDICES.items())
+    dl = []; 
+    for t in WATCHLIST:
+        d = get_price(t)
+        if d: d["ticker"] = t; dl.append(d)
+    dl.sort(key=lambda x: x["change"], reverse=True)
+    gainers = "\n".join(f"{i}. *{d['ticker']}*: +{d['change']:.2f}%" for i, d in enumerate(dl[:3], 1))
+    losers = "\n".join(f"{i}. *{d['ticker']}*: {d['change']:.2f}%" for i, d in enumerate(sorted(dl, key=lambda x: x["change"])[:3], 1))
+    signal_ticker = dl[0]["ticker"] if dl else "AAPL"
+    bot.reply_to(message, lang["morning_digest"].format(indices=indices, gainers=gainers, losers=losers, signal=signal_ticker), parse_mode="Markdown")
 
 # ─── СТАРТ ──────────────────────────────────────────────
 @bot.message_handler(commands=['start'])
@@ -567,14 +519,19 @@ def send_welcome(message):
     is_new = register_user(uid) if is_invite else False
     if not is_allowed(uid):
         bot.send_message(uid, lang["welcome_no_access"].format(owner=OWNER_USERNAME), parse_mode="Markdown"); return
-    days = days_left(uid)
-    text = lang["welcome_trial"].format(name=message.from_user.first_name, days=FREE_DAYS) if (is_new and is_invite) else lang["welcome_back"].format(name=message.from_user.first_name, days=days, lang_name=lang["name"])
+    days = days_left(uid); pro = is_pro(uid)
+    if is_new and is_invite:
+        text = lang["welcome_trial"].format(name=message.from_user.first_name, days=FREE_DAYS, sig_limit=FREE_SIGNALS_PER_DAY)
+    else:
+        pro_status = "🔓 PRO — безлимит + утренняя сводка + сравнение" if pro else f"🆓 Бесплатно — {FREE_SIGNALS_PER_DAY} сигналов/день"
+        text = lang["welcome_back"].format(name=message.from_user.first_name, days=days, pro_status=pro_status)
     bot.send_message(uid, text, parse_mode="Markdown", reply_markup=main_menu(lang))
 
 def main_menu(lang):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
-        types.KeyboardButton("🤖 ИИ-Сигнал"), types.KeyboardButton(lang["btn_top_market"]),
+        types.KeyboardButton("🤖 ИИ-Сигнал"), types.KeyboardButton(lang["btn_morning"]),
+        types.KeyboardButton(lang["btn_top_market"]), types.KeyboardButton(lang["btn_compare"]),
         types.KeyboardButton(lang["btn_stocks"]), types.KeyboardButton(lang["btn_gainers"]),
         types.KeyboardButton(lang["btn_losers"]), types.KeyboardButton(lang["btn_potential"]),
         types.KeyboardButton(lang["btn_news"]), types.KeyboardButton(lang["btn_rsi"]),
@@ -598,124 +555,42 @@ def top_market_menu(lang):
 
 def crypto_menu(lang):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(
-        types.KeyboardButton(lang["btn_crypto_price"]), types.KeyboardButton(lang["btn_crypto_list"]),
-        types.KeyboardButton(lang["btn_crypto_potential"]), types.KeyboardButton(lang["btn_back"])
-    )
+    markup.add(types.KeyboardButton(lang["btn_crypto_price"]), types.KeyboardButton(lang["btn_crypto_list"]), types.KeyboardButton(lang["btn_crypto_potential"]), types.KeyboardButton(lang["btn_back"]))
     return markup
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("lang_"))
 def callback_lang(call):
     uid = call.from_user.id; code = call.data.replace("lang_", "")
     set_user_lang(uid, code); lang = LANG[code]
-    bot.answer_callback_query(call.id, lang["lang_set"])
-    bot.delete_message(uid, call.message.message_id)
+    bot.answer_callback_query(call.id, lang["lang_set"]); bot.delete_message(uid, call.message.message_id)
     if is_allowed(uid):
-        days = days_left(uid)
-        bot.send_message(uid, lang["welcome_back"].format(name=call.from_user.first_name, days=days, lang_name=lang["name"]), parse_mode="Markdown", reply_markup=main_menu(lang))
-    else:
-        bot.send_message(uid, lang["welcome_no_access"].format(owner=OWNER_USERNAME), parse_mode="Markdown")
-
-# ─── КОМАНДЫ ────────────────────────────────────────────
-@bot.message_handler(commands=['price'])
-def send_price(message):
-    if not is_allowed(message.from_user.id): return
-    lang = get_lang(message); save_ping()
-    try:
-        t = message.text.split()[1].upper(); d = get_price(t)
-        if d is None: bot.reply_to(message, lang["wrong_ticker"]); return
-        e = "📈" if d["change"] >= 0 else "📉"
-        bot.send_message(message.chat.id, lang["price"].format(name=t, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
-    except: bot.reply_to(message, lang["wrong_ticker"])
-
-@bot.message_handler(commands=['rsi'])
-def cmd_rsi(message):
-    if not is_allowed(message.from_user.id): return
-    lang = get_lang(message); save_ping()
-    try:
-        t = message.text.split()[1].upper(); d = get_price(t)
-        if d is None: bot.reply_to(message, lang["wrong_ticker"]); return
-        r = get_rsi(t); s = "🔴" if r>=70 else "🟢" if r<=30 else "⚪" if 40<=r<=60 else "🟠" if r>60 else "🟡"
-        bot.send_message(message.chat.id, lang["rsi"].format(ticker=t, price=d["price"], rsi=r, signal=s), parse_mode="Markdown", reply_markup=main_menu(lang))
-    except: bot.reply_to(message, lang["wrong_ticker"])
-
-@bot.message_handler(commands=['chart'])
-def cmd_chart(message):
-    if not is_allowed(message.from_user.id): return
-    lang = get_lang(message); save_ping()
-    try:
-        t = message.text.split()[1].upper(); d = get_price(t); l = get_chart_link(t)
-        if d is None: bot.reply_to(message, lang["wrong_ticker"]); return
-        bot.send_message(message.chat.id, lang["chart"].format(ticker=t, price=d["price"], link=l), parse_mode="Markdown", reply_markup=main_menu(lang), disable_web_page_preview=False)
-    except: bot.reply_to(message, lang["wrong_ticker"])
-
-@bot.message_handler(commands=['alert'])
-def cmd_alert(message):
-    if not is_allowed(message.from_user.id): return
-    lang = get_lang(message); save_ping()
-    try:
-        p = message.text.split(); t, target = p[1].upper(), float(p[2])
-        cur = get_price(t)["price"]
-        alerts = json.load(open("alerts.json")) if os.path.exists("alerts.json") else []
-        alerts.append({"chat_id": message.chat.id, "ticker": t, "target": target, "direction": "above" if target > cur else "below"})
-        json.dump(alerts, open("alerts.json", "w"))
-        bot.reply_to(message, lang["alert_set"].format(ticker=t, target=target), reply_markup=main_menu(lang))
-    except: bot.reply_to(message, "❌ /alert TICKER PRICE")
-
-@bot.message_handler(commands=['alerts'])
-def cmd_alerts(message):
-    if not is_allowed(message.from_user.id): return
-    lang = get_lang(message); save_ping()
-    alerts = json.load(open("alerts.json")) if os.path.exists("alerts.json") else []
-    my = [a for a in alerts if a["chat_id"] == message.chat.id]
-    if not my: bot.reply_to(message, lang["no_alerts"], reply_markup=main_menu(lang)); return
-    text = lang["alerts_list"]
-    for i, a in enumerate(my, 1):
-        try:
-            price = get_price(a["ticker"])["price"]
-            text += f"{i}. *{a['ticker']}*: target ${a['target']:.2f} | now ${price:.2f}\n"
-        except: text += f"{i}. *{a['ticker']}*: target ${a['target']:.2f}\n"
-    text += "\n/delalert NUMBER"
-    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
-
-@bot.message_handler(commands=['delalert'])
-def cmd_delalert(message):
-    if not is_allowed(message.from_user.id): return
-    lang = get_lang(message); save_ping()
-    try:
-        idx = int(message.text.split()[1]) - 1
-        alerts = json.load(open("alerts.json")) if os.path.exists("alerts.json") else []
-        my = [a for a in alerts if a["chat_id"] == message.chat.id]
-        if idx < 0 or idx >= len(my): bot.reply_to(message, "❌"); return
-        removed = my[idx]; alerts.remove(removed); json.dump(alerts, open("alerts.json", "w"))
-        bot.reply_to(message, lang["del_alert"].format(ticker=removed["ticker"]), reply_markup=main_menu(lang))
-    except: bot.reply_to(message, "❌ /delalert NUMBER")
-
-@bot.message_handler(commands=['me'])
-def cmd_me(message):
-    if not is_allowed(message.from_user.id): return
-    lang = get_lang(message); save_ping()
-    uid = message.from_user.id
-    bot.send_message(uid, lang["profile"].format(uid=uid, days=days_left(uid), lang_name=lang["name"], owner=OWNER_USERNAME), parse_mode="Markdown", reply_markup=main_menu(lang))
-
-@bot.message_handler(commands=['lang'])
-def cmd_lang(message):
-    if not is_allowed(message.from_user.id): return
-    lang = get_lang(message); save_ping()
-    bot.send_message(message.chat.id, lang["choose"], reply_markup=lang_menu())
+        days = days_left(uid); pro = is_pro(uid)
+        pro_status = "🔓 PRO" if pro else f"🆓 Free — {FREE_SIGNALS_PER_DAY} сигналов/день"
+        bot.send_message(uid, lang["welcome_back"].format(name=call.from_user.first_name, days=days, pro_status=pro_status), parse_mode="Markdown", reply_markup=main_menu(lang))
+    else: bot.send_message(uid, lang["welcome_no_access"].format(owner=OWNER_USERNAME), parse_mode="Markdown")
 
 # ─── КНОПКИ ──────────────────────────────────────────────
 @bot.message_handler(func=lambda m: True)
 def handle_buttons(message):
     uid = message.from_user.id; lang = get_lang(message); save_ping()
-    if message.text == lang["btn_lang"]:
-        bot.send_message(uid, lang["choose"], reply_markup=lang_menu()); return
-    if not is_allowed(uid):
-        bot.reply_to(message, lang["sub_expired"]); return
-    t = message.text
+    if message.text == lang["btn_lang"]: bot.send_message(uid, lang["choose"], reply_markup=lang_menu()); return
+    if not is_allowed(uid): bot.reply_to(message, lang["sub_expired"]); return
+    t = message.text; pro = is_pro(uid)
+    
     if t == "🤖 ИИ-Сигнал":
-        msg = bot.reply_to(message, "Введи тикер для ИИ-анализа (например, AAPL):", reply_markup=types.ForceReply(selective=True))
+        if not pro:
+            sigs = get_signals_today(uid)
+            if sigs >= FREE_SIGNALS_PER_DAY: bot.reply_to(message, lang["signal_limit"].format(limit=FREE_SIGNALS_PER_DAY)); return
+        msg = bot.reply_to(message, "Введи тикер (например, AAPL):", reply_markup=types.ForceReply(selective=True))
         bot.register_next_step_handler(msg, lambda m: process_signal_button(m, lang)); return
+    if t == lang["btn_morning"]:
+        if not pro: bot.reply_to(message, lang["morning_digest_pro"]); return
+        cmd_morning(message); return
+    if t == lang["btn_compare"]:
+        if not pro: bot.reply_to(message, lang["compare_pro_only"]); return
+        msg = bot.reply_to(message, "Введи тикеры через пробел (например, AAPL TSLA MSFT):", reply_markup=types.ForceReply(selective=True))
+        bot.register_next_step_handler(msg, lambda m: process_compare_button(m, lang)); return
+    
     if t == lang["btn_top_market"]: bot.send_message(uid, lang["top_market_title"], parse_mode="Markdown", reply_markup=top_market_menu(lang))
     elif t == lang["btn_stocks"]: show_watchlist(message, lang)
     elif t == lang["btn_gainers"]: show_top_gainers(message, lang)
@@ -750,15 +625,16 @@ def handle_buttons(message):
     elif t == lang["btn_card_pay"]: show_card_tariffs(message, lang)
     elif t == lang["btn_crypto_pay"]: show_usdt_tariffs(message, lang)
     elif t == lang["btn_ton_pay"]: show_ton_tariffs(message, lang)
-    elif t == lang["btn_tariff_30"]: show_tariff_card(message, lang, 30, 299)
-    elif t == lang["btn_tariff_90"]: show_tariff_card(message, lang, 90, 699)
-    elif t == lang["btn_tariff_365"]: show_tariff_card(message, lang, 365, 1999)
-    elif t == lang["crypto_tariff_30"]: show_tariff_usdt(message, lang, 30, 10)
-    elif t == lang["crypto_tariff_90"]: show_tariff_usdt(message, lang, 90, 25)
-    elif t == lang["crypto_tariff_365"]: show_tariff_usdt(message, lang, 365, 70)
-    elif t == lang["ton_tariff_30"]: show_tariff_ton(message, lang, 30, 10)
-    elif t == lang["ton_tariff_90"]: show_tariff_ton(message, lang, 90, 25)
-    elif t == lang["ton_tariff_365"]: show_tariff_ton(message, lang, 365, 70)
+    elif t in [lang["btn_tariff_30"], lang["btn_tariff_90"], lang["btn_tariff_365"]]:
+        days = 30 if "30" in t else 90 if "90" in t else 365
+        price = 299 if days == 30 else 699 if days == 90 else 1999
+        show_tariff_card(message, lang, days, price)
+    elif t in [lang["crypto_tariff_30"], lang["crypto_tariff_90"], lang["crypto_tariff_365"]]:
+        days = 30 if "30" in t else 90 if "90" in t else 365
+        show_tariff_usdt(message, lang, days, 10 if days == 30 else 25 if days == 90 else 70)
+    elif t in [lang["ton_tariff_30"], lang["ton_tariff_90"], lang["ton_tariff_365"]]:
+        days = 30 if "30" in t else 90 if "90" in t else 365
+        show_tariff_ton(message, lang, days, 10 if days == 30 else 25 if days == 90 else 70)
     elif t == lang["btn_back_sub"]: bot.send_message(uid, lang["main_menu"], reply_markup=main_menu(lang))
     else:
         try:
@@ -769,38 +645,56 @@ def handle_buttons(message):
         except: bot.reply_to(message, lang["use_buttons"], reply_markup=main_menu(lang))
 
 def process_signal_button(message, lang):
+    uid = message.from_user.id
+    if not is_pro(uid):
+        sigs = get_signals_today(uid)
+        if sigs >= FREE_SIGNALS_PER_DAY: bot.reply_to(message, lang["signal_limit"].format(limit=FREE_SIGNALS_PER_DAY)); return
     try:
         ticker = message.text.upper(); d = get_price(ticker)
         if d is None: bot.reply_to(message, "❌ Неверный тикер", reply_markup=main_menu(lang)); return
         sm = bot.reply_to(message, lang["ai_analyzing"].format(ticker=ticker), parse_mode="Markdown")
         rsi = get_rsi(ticker); macd = get_macd(ticker); news = get_news(ticker)
-        dates, closes = get_price_history(ticker, 30); link = get_chart_link(ticker)
-        analysis = deepseek_analysis(ticker, d["price"], rsi, macd, news)
+        dates, closes = get_price_history(ticker, 30)
+        extended = is_pro(uid)
+        analysis = deepseek_analysis(ticker, d["price"], rsi, macd, news, extended)
         buf = generate_signal_chart(ticker, dates, closes, analysis)
         emoji = "📈" if d["change"] >= 0 else "📉"
-        text = lang["ai_signal"].format(ticker=ticker, emoji=emoji, price=d["price"], rsi=rsi, macd=macd, news_count=len(news), analysis=analysis, link=link)
-        if buf:
-            bot.delete_message(message.chat.id, sm.message_id)
-            bot.send_photo(message.chat.id, buf, caption=text, parse_mode="Markdown")
-        else:
-            bot.edit_message_text(text, message.chat.id, sm.message_id, parse_mode="Markdown", disable_web_page_preview=True)
+        text = lang["ai_signal"].format(ticker=ticker, emoji=emoji, price=d["price"], rsi=rsi, macd=macd, news_count=len(news), analysis=analysis, link=get_chart_link(ticker))
+        if not is_pro(uid): use_signal(uid)
+        if buf: bot.delete_message(message.chat.id, sm.message_id); bot.send_photo(message.chat.id, buf, caption=text, parse_mode="Markdown")
+        else: bot.edit_message_text(text, message.chat.id, sm.message_id, parse_mode="Markdown", disable_web_page_preview=True)
     except: bot.reply_to(message, "❌ Ошибка при анализе.", reply_markup=main_menu(lang))
 
-# ─── ТОП РЫНКА ──────────────────────────────────────────
+def process_compare_button(message, lang):
+    try:
+        parts = message.text.split()
+        if len(parts) < 2: bot.reply_to(message, "❌ Нужно минимум 2 тикера"); return
+        text = lang["compare_title"]
+        for t in parts[:5]:
+            d = get_price(t.upper())
+            if d:
+                rsi = get_rsi(t.upper()); macd = get_macd(t.upper())
+                e = "📈" if d["change"] >= 0 else "📉"
+                text += f"*{t.upper()}*: ${d['price']:.2f} {e} {d['change']:+.2f}% | RSI: {rsi} | MACD: {macd}\n"
+            else: text += f"*{t.upper()}*: ❌\n"
+        text += "━━━━━━━━━━━━━━━"
+        bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
+    except: bot.reply_to(message, "❌ Ошибка")
+
+# ─── ОСТАЛЬНЫЕ ФУНКЦИИ (сокращённые) ────────────────────
 def show_market_summary(message, lang):
     text = lang["market_summary"]
-    for name, ticker in INDICES.items():
-        d = get_price(ticker)
-        if d: text += f"{name}: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n"
-        else: text += f"{name}: ❌\n"
+    for n, t in INDICES.items():
+        d = get_price(t)
+        text += f"{n}: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n" if d else f"{n}: ❌\n"
     text += "━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
 
 def show_hype_of_day(message, lang):
     best = None; best_change = 0
-    for ticker in list(US_STOCKS.values())[:10]:
-        d = get_price(ticker)
-        if d and abs(d["change"]) > abs(best_change): best_change = d["change"]; best = {"name": ticker, "price": d["price"], "change": d["change"]}
+    for t in list(US_STOCKS.values())[:10]:
+        d = get_price(t)
+        if d and abs(d["change"]) > abs(best_change): best_change = d["change"]; best = {"name": t, "price": d["price"], "change": d["change"]}
     if best:
         e = "📈" if best["change"]>=0 else "📉"
         text = lang["hype_of_day"] + f"*{best['name']}*\n💰 ${best['price']:.2f} {e} {best['change']:+.2f}%"
@@ -810,9 +704,9 @@ def show_hype_of_day(message, lang):
 
 def show_signal_of_day(message, lang):
     best = None; best_rsi = 100
-    for ticker in WATCHLIST:
-        rsi = get_rsi(ticker); d = get_price(ticker)
-        if d and rsi < best_rsi: best_rsi = rsi; best = {"name": ticker, "price": d["price"], "rsi": rsi}
+    for t in WATCHLIST:
+        rsi = get_rsi(t); d = get_price(t)
+        if d and rsi < best_rsi: best_rsi = rsi; best = {"name": t, "price": d["price"], "rsi": rsi}
     if best:
         s = "🟢" if best["rsi"]<=30 else "🟡"
         text = lang["signal_of_day"] + f"*{best['name']}*\n💰 ${best['price']:.2f}\n📊 RSI: *{best['rsi']}* {s}"
@@ -824,23 +718,22 @@ def show_stock_group(message, lang, stock_dict, title):
     text = f"*{title}*\n\n"
     for name, ticker in stock_dict.items():
         d = get_price(ticker)
-        if d: text += f"{name}: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n"
-        else: text += f"{name}: ❌\n"
+        text += f"{name}: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n" if d else f"{name}: ❌\n"
     text += "━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
 
 def show_links_group(message, lang, links_dict, title):
-    text = f"*{title}*\n\nНажмите на ссылку для открытия графика:\n\n"
+    text = f"*{title}*\n\n"
     for name, link in links_dict.items(): text += f"{name}: [📊 График]({link})\n"
     text += "\n━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang), disable_web_page_preview=True)
 
-# ─── МЕНЮ ОПЛАТЫ ────────────────────────────────────────
 def show_payment_options(message, lang):
-    days = days_left(message.from_user.id)
+    days = days_left(message.from_user.id); pro = is_pro(message.from_user.id)
+    pro_status = "🔓 PRO — безлимит" if pro else "🆓 Бесплатно — 3 сигнала/день"
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(types.KeyboardButton(lang["btn_card_pay"]), types.KeyboardButton(lang["btn_crypto_pay"]), types.KeyboardButton(lang["btn_ton_pay"]), types.KeyboardButton(lang["btn_back_sub"]))
-    bot.send_message(message.chat.id, lang["subscription_info"].format(days=days), parse_mode="Markdown", reply_markup=markup)
+    bot.send_message(message.chat.id, lang["subscription_info"].format(days=days, pro_status=pro_status), parse_mode="Markdown", reply_markup=markup)
 
 def show_card_tariffs(message, lang):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
@@ -850,12 +743,12 @@ def show_card_tariffs(message, lang):
 def show_usdt_tariffs(message, lang):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(types.KeyboardButton(lang["crypto_tariff_30"]), types.KeyboardButton(lang["crypto_tariff_90"]), types.KeyboardButton(lang["crypto_tariff_365"]), types.KeyboardButton(lang["btn_back_sub"]))
-    bot.send_message(message.chat.id, "🪙 *Оплата USDT (ERC-20)*\n\nВыберите тариф:", parse_mode="Markdown", reply_markup=markup)
+    bot.send_message(message.chat.id, "🪙 *Оплата USDT*\n\nВыберите тариф:", parse_mode="Markdown", reply_markup=markup)
 
 def show_ton_tariffs(message, lang):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(types.KeyboardButton(lang["ton_tariff_30"]), types.KeyboardButton(lang["ton_tariff_90"]), types.KeyboardButton(lang["ton_tariff_365"]), types.KeyboardButton(lang["btn_back_sub"]))
-    bot.send_message(message.chat.id, "💎 *Оплата Telegram Wallet (TON)*\n\nВыберите тариф:", parse_mode="Markdown", reply_markup=markup)
+    bot.send_message(message.chat.id, "💎 *Оплата TON*\n\nВыберите тариф:", parse_mode="Markdown", reply_markup=markup)
 
 def show_tariff_card(message, lang, days, price):
     bot.send_message(message.chat.id, lang[f"tariff_{days}_card"].format(card=CARD_NUMBER, owner=OWNER_USERNAME), parse_mode="Markdown", reply_markup=main_menu(lang))
@@ -865,6 +758,92 @@ def show_tariff_usdt(message, lang, days, amount):
 
 def show_tariff_ton(message, lang, days, amount):
     bot.send_message(message.chat.id, lang[f"tariff_{days}_ton"].format(ton=TON_ADDRESS, owner=OWNER_USERNAME), parse_mode="Markdown", reply_markup=main_menu(lang))
+
+@bot.message_handler(commands=['me'])
+def cmd_me(message):
+    if not is_allowed(message.from_user.id): return
+    lang = get_lang(message); uid = message.from_user.id; save_ping()
+    days = days_left(uid); pro = is_pro(uid); sig_today = get_signals_today(uid)
+    pro_status = "🔓 PRO" if pro else "🆓 Бесплатно"
+    sig_limit = "∞" if pro else str(FREE_SIGNALS_PER_DAY)
+    bot.send_message(uid, lang["profile"].format(uid=uid, days=days, pro_status=pro_status, sig_today=sig_today, sig_limit=sig_limit, owner=OWNER_USERNAME), parse_mode="Markdown", reply_markup=main_menu(lang))
+
+@bot.message_handler(commands=['alerts'])
+def cmd_alerts(message):
+    if not is_allowed(message.from_user.id): return
+    lang = get_lang(message)
+    alerts = json.load(open("alerts.json")) if os.path.exists("alerts.json") else []
+    my = [a for a in alerts if a["chat_id"] == message.chat.id]
+    if not my: bot.reply_to(message, lang["no_alerts"], reply_markup=main_menu(lang)); return
+    text = lang["alerts_list"]
+    for i, a in enumerate(my, 1):
+        try: text += f"{i}. *{a['ticker']}*: target ${a['target']:.2f} | now ${get_price(a['ticker'])['price']:.2f}\n"
+        except: text += f"{i}. *{a['ticker']}*: target ${a['target']:.2f}\n"
+    text += "\n/delalert NUMBER"
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
+
+@bot.message_handler(commands=['price'])
+def send_price(message):
+    if not is_allowed(message.from_user.id): return
+    lang = get_lang(message)
+    try:
+        t = message.text.split()[1].upper(); d = get_price(t)
+        if d is None: bot.reply_to(message, lang["wrong_ticker"]); return
+        e = "📈" if d["change"] >= 0 else "📉"
+        bot.send_message(message.chat.id, lang["price"].format(name=t, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
+    except: bot.reply_to(message, lang["wrong_ticker"])
+
+@bot.message_handler(commands=['rsi'])
+def cmd_rsi(message):
+    if not is_allowed(message.from_user.id): return
+    lang = get_lang(message)
+    try:
+        t = message.text.split()[1].upper(); d = get_price(t)
+        if d is None: bot.reply_to(message, lang["wrong_ticker"]); return
+        r = get_rsi(t); s = "🔴" if r>=70 else "🟢" if r<=30 else "⚪" if 40<=r<=60 else "🟠" if r>60 else "🟡"
+        bot.send_message(message.chat.id, lang["rsi"].format(ticker=t, price=d["price"], rsi=r, signal=s), parse_mode="Markdown", reply_markup=main_menu(lang))
+    except: bot.reply_to(message, lang["wrong_ticker"])
+
+@bot.message_handler(commands=['chart'])
+def cmd_chart(message):
+    if not is_allowed(message.from_user.id): return
+    lang = get_lang(message)
+    try:
+        t = message.text.split()[1].upper(); d = get_price(t)
+        if d is None: bot.reply_to(message, lang["wrong_ticker"]); return
+        bot.send_message(message.chat.id, lang["chart"].format(ticker=t, price=d["price"], link=get_chart_link(t)), parse_mode="Markdown", reply_markup=main_menu(lang), disable_web_page_preview=False)
+    except: bot.reply_to(message, lang["wrong_ticker"])
+
+@bot.message_handler(commands=['alert'])
+def cmd_alert(message):
+    if not is_allowed(message.from_user.id): return
+    lang = get_lang(message)
+    try:
+        p = message.text.split(); t, target = p[1].upper(), float(p[2])
+        alerts = json.load(open("alerts.json")) if os.path.exists("alerts.json") else []
+        alerts.append({"chat_id": message.chat.id, "ticker": t, "target": target, "direction": "above" if target > get_price(t)["price"] else "below"})
+        json.dump(alerts, open("alerts.json", "w"))
+        bot.reply_to(message, lang["alert_set"].format(ticker=t, target=target), reply_markup=main_menu(lang))
+    except: bot.reply_to(message, "❌ /alert TICKER PRICE")
+
+@bot.message_handler(commands=['delalert'])
+def cmd_delalert(message):
+    if not is_allowed(message.from_user.id): return
+    lang = get_lang(message)
+    try:
+        idx = int(message.text.split()[1]) - 1
+        alerts = json.load(open("alerts.json")) if os.path.exists("alerts.json") else []
+        my = [a for a in alerts if a["chat_id"] == message.chat.id]
+        if idx < 0 or idx >= len(my): bot.reply_to(message, "❌"); return
+        removed = my[idx]; alerts.remove(removed); json.dump(alerts, open("alerts.json", "w"))
+        bot.reply_to(message, lang["del_alert"].format(ticker=removed["ticker"]), reply_markup=main_menu(lang))
+    except: bot.reply_to(message, "❌ /delalert NUMBER")
+
+@bot.message_handler(commands=['lang'])
+def cmd_lang(message):
+    if not is_allowed(message.from_user.id): return
+    lang = get_lang(message); save_ping()
+    bot.send_message(message.chat.id, lang["choose"], reply_markup=lang_menu())
 
 # ─── ОБРАБОТЧИКИ ────────────────────────────────────────
 def process_ticker(message, lang):
@@ -893,56 +872,52 @@ def process_rsi(message, lang):
 
 def process_chart(message, lang):
     try:
-        t = message.text.upper(); d = get_price(t); l = get_chart_link(t)
+        t = message.text.upper(); d = get_price(t)
         if d is None: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang)); return
-        bot.send_message(message.chat.id, lang["chart"].format(ticker=t, price=d["price"], link=l), parse_mode="Markdown", reply_markup=main_menu(lang), disable_web_page_preview=False)
+        bot.send_message(message.chat.id, lang["chart"].format(ticker=t, price=d["price"], link=get_chart_link(t)), parse_mode="Markdown", reply_markup=main_menu(lang), disable_web_page_preview=False)
     except: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang))
 
 def show_watchlist(message, lang):
     text = lang["stock_list"]
     for t in WATCHLIST:
         d = get_price(t)
-        if d: text += f"• *{t}*: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n"
-        else: text += f"• *{t}*: ❌\n"
+        text += f"• *{t}*: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n" if d else f"• *{t}*: ❌\n"
     text += "━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
 
 def show_top_gainers(message, lang):
-    dl = []
+    dl = []; 
     for t in WATCHLIST:
         d = get_price(t)
         if d: d["ticker"] = t; dl.append(d)
     dl.sort(key=lambda x: x["change"], reverse=True)
-    text = lang["gainers"]
-    for i, d in enumerate(dl[:5], 1): text += f"{i}. *{d['ticker']}*: +{d['change']:.2f}%\n"
-    text += "━━━━━━━━━━━━━━━"
+    text = lang["gainers"] + "\n".join(f"{i}. *{d['ticker']}*: +{d['change']:.2f}%" for i, d in enumerate(dl[:5], 1))
+    text += "\n━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
 
 def show_top_losers(message, lang):
-    dl = []
+    dl = []; 
     for t in WATCHLIST:
         d = get_price(t)
         if d: d["ticker"] = t; dl.append(d)
     dl.sort(key=lambda x: x["change"])
-    text = lang["losers"]
-    for i, d in enumerate(dl[:5], 1): text += f"{i}. *{d['ticker']}*: {d['change']:.2f}%\n"
-    text += "━━━━━━━━━━━━━━━"
+    text = lang["losers"] + "\n".join(f"{i}. *{d['ticker']}*: {d['change']:.2f}%" for i, d in enumerate(dl[:5], 1))
+    text += "\n━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
 
 def show_potential(message, lang):
-    dl = []
+    dl = []; 
     for t in WATCHLIST:
         d = get_price(t)
         if d: dl.append({"ticker": t, "rsi": get_rsi(t), "price": d["price"]})
-    dl.sort(key=lambda x: x["rsi"])
-    pot = [d for d in dl if d["rsi"] < 45][:5]
+    dl.sort(key=lambda x: x["rsi"]); pot = [d for d in dl if d["rsi"] < 45][:5]
     text = (lang["potential"] + "\n".join(f"{'🟢' if d['rsi']<30 else '🟡'} *{d['ticker']}*: RSI {d['rsi']} | ${d['price']:.2f}" for d in pot)) if pot else lang["no_candidates"]
     text += "\n━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
 
 def show_news_movers(message, lang):
     bot.send_message(message.chat.id, lang["searching_news"])
-    mv = []
+    mv = []; 
     for t in WATCHLIST:
         d = get_price(t)
         if d and abs(d["change"]) > 1.5: mv.append({"ticker": t, "change": d["change"], "price": d["price"], "news": get_news(t)})
@@ -957,35 +932,29 @@ def show_news_movers(message, lang):
     if len(text) > 4000:
         for p in [text[i:i+3800] for i in range(0, len(text), 3800)]:
             bot.send_message(message.chat.id, p, parse_mode="Markdown", disable_web_page_preview=True)
-    else:
-        bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang), disable_web_page_preview=True)
+    else: bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang), disable_web_page_preview=True)
 
 def show_crypto_list(message, lang):
     text = lang["crypto_list"]
     for t in CRYPTO_LIST:
         d = get_crypto_price_coingecko(t)
-        if d: text += f"• *{t.capitalize()}*: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n"
-        else: text += f"• *{t}*: ❌\n"
+        text += f"• *{t.capitalize()}*: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n" if d else f"• *{t}*: ❌\n"
     text += "━━━━━━━━━━━━━━━\n_Данные: CoinGecko_"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=crypto_menu(lang))
 
 def show_crypto_potential(message, lang):
-    dl = []
+    dl = []; 
     for t in CRYPTO_LIST:
         d = get_crypto_price_coingecko(t)
         if d: dl.append({"ticker": t.capitalize(), "price": d["price"], "change": d["change"]})
-    dl.sort(key=lambda x: x["change"])
-    pot = [d for d in dl if d["change"] < -2][:5]
+    dl.sort(key=lambda x: x["change"]); pot = [d for d in dl if d["change"] < -2][:5]
     text = (lang["crypto_potential"] + "\n".join(f"🟢 *{d['ticker']}*: ${d['price']:.2f} ({d['change']:+.2f}%)" for d in pot)) if pot else lang["no_candidates"]
     text += "\n━━━━━━━━━━━━━━━\n_Данные: CoinGecko_"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=crypto_menu(lang))
 
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        save_ping()
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"OK")
+        save_ping(); self.send_response(200); self.end_headers(); self.wfile.write(b"OK")
 
 def run_health_server():
     server = HTTPServer(("0.0.0.0", 10000), HealthHandler)
