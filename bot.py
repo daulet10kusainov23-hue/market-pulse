@@ -6,16 +6,21 @@ import threading
 import time
 import traceback
 import sys
-import subprocess
 from telebot import apihelper, types
 from tinydb import TinyDB, Query
 from datetime import datetime, timedelta
 import shutil
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from io import BytesIO
 
 # ─── НАСТРОЙКИ ──────────────────────────────────────────
 TOKEN = os.getenv("TOKEN", "")
 MASTER_KEY = os.getenv("MASTER_KEY", "default123")
+DEEPSEEK_KEY = os.getenv("DEEPSEEK_KEY", "")
 OWNER_ID = int(os.getenv("OWNER_ID", "453561961"))
 OWNER_USERNAME = "@Kusainov10"
 CARD_NUMBER = "2200 7001 5852 1475"
@@ -29,7 +34,6 @@ DB = TinyDB("users.json")
 USERS_DB = DB.table("users")
 LANG_DB = DB.table("languages")
 
-# ─── МОНИТОРИНГ И АВТОПОЧИНКА ───────────────────────────
 LAST_PING_FILE = "/opt/render/project/src/last_ping.txt"
 ERROR_LOG_FILE = "/opt/render/project/src/error.log"
 BOT_START_TIME = time.time()
@@ -58,13 +62,11 @@ def log_error(error_text):
         pass
 
 def get_uptime():
-    """Возвращает время работы бота в читаемом виде."""
     uptime_seconds = int(time.time() - BOT_START_TIME)
     days = uptime_seconds // 86400
     hours = (uptime_seconds % 86400) // 3600
     minutes = (uptime_seconds % 3600) // 60
     seconds = uptime_seconds % 60
-    
     parts = []
     if days > 0: parts.append(f"{days} дн")
     if hours > 0: parts.append(f"{hours} ч")
@@ -73,38 +75,25 @@ def get_uptime():
     return " ".join(parts)
 
 def get_bot_status():
-    """Возвращает статус бота для отображения пользователям."""
     last_ping = get_last_ping()
     time_since_ping = time.time() - last_ping
-    
-    if time_since_ping < 60:
-        status = "🟢 Онлайн"
-    elif time_since_ping < 120:
-        status = "🟡 Замедление"
-    elif time_since_ping < 300:
-        status = "🟠 Проблемы"
-    else:
-        status = "🔴 Офлайн"
-    
-    return {
-        "status": status,
-        "uptime": get_uptime(),
-        "last_ping_seconds": int(time_since_ping)
-    }
+    if time_since_ping < 60: status = "🟢 Онлайн"
+    elif time_since_ping < 120: status = "🟡 Замедление"
+    elif time_since_ping < 300: status = "🟠 Проблемы"
+    else: status = "🔴 Офлайн"
+    return {"status": status, "uptime": get_uptime(), "last_ping_seconds": int(time_since_ping)}
 
 def auto_restart_check():
-    """Проверяет, жив ли бот. Если нет — пытается перезапустить."""
     while True:
         time.sleep(60)
         try:
             last_ping = get_last_ping()
             if time.time() - last_ping > 300:
-                log_error("AUTO-RESTART: Бот не отвечает более 5 минут. Попытка перезапуска.")
+                log_error("AUTO-RESTART: Бот не отвечает более 5 минут.")
                 try:
-                    bot.send_message(OWNER_ID, "⚠️ Бот не отвечает более 5 минут. Пытаюсь перезапустить...")
+                    bot.send_message(OWNER_ID, "⚠️ Бот не отвечает более 5 минут.")
                 except:
                     pass
-                # Попытка перезапуска
                 try:
                     os.execv(sys.executable, [sys.executable] + sys.argv)
                 except:
@@ -166,7 +155,7 @@ LANG = {
         "potential": "🔮 *Потенциал:*\n\n", "crypto_potential": "🔮 *Крипто потенциал:*\n\n",
         "news": "📰 *Новости:*\n\n", "no_news": "😴 Нет движений.",
         "no_candidates": "🔮 Нет кандидатов.",
-        "help": "ℹ️ Market Pulse\n\n📊 Цена | 🪙 Крипта | 📈 RSI | 📉 График\n🔔 Алерты | 👤 Профиль | 🌐 Язык | 💳 Подписка",
+        "help": "ℹ️ Market Pulse\n\n/signal ТИКЕР — ИИ-сигнал с графиком\n📊 Цена | 🪙 Крипта | 📈 RSI | 📉 График\n🔔 Алерты | 👤 Профиль | 🌐 Язык | 💳 Подписка",
         "enter_ticker": "Введи тикер:", "wrong_ticker": "❌ Неверный тикер",
         "use_buttons": "Используй меню.", "main_menu": "Главное меню",
         "crypto_menu": "🪙 Крипта", "searching_news": "📰 Ищу новости...",
@@ -181,14 +170,12 @@ LANG = {
         "signal_of_day": "🎯 *Сигнал дня*\n\n",
         "top_market_title": "🔥 *Топ рынка*\n\nВыберите раздел:",
         "bot_status": "📡 *Статус бота*\n\nСтатус: {status}\nАптайм: {uptime}\nПоследний пинг: {ping} сек. назад",
-        "btn_top_market": "🔥 Топ рынка",
-        "btn_market_summary": "📊 Сводка рынка",
-        "btn_hype_day": "🚀 Хайп дня",
-        "btn_signal_day": "🎯 Сигнал дня",
-        "btn_us_stocks": "🇺🇸 Акции США",
-        "btn_ru_stocks": "🇷🇺 Акции РФ",
-        "btn_cn_stocks": "🇨🇳 Акции Китая",
-        "btn_eu_stocks": "🇪🇺 Акции Европы",
+        "ai_signal": "🤖 *ИИ-сигнал для {ticker}*\n\nЦена: ${price:.2f} {emoji}\n📊 RSI: {rsi}\n📈 MACD: {macd}\n📰 Новости: {news_count} шт.\n\n🧠 *DeepSeek AI:*\n{analysis}\n\n📉 [Открыть график TradingView]({link})",
+        "ai_analyzing": "🤖 Анализирую {ticker} через DeepSeek AI...\nСтрою график...\nЭто займёт 10-15 секунд.",
+        "btn_top_market": "🔥 Топ рынка", "btn_market_summary": "📊 Сводка рынка",
+        "btn_hype_day": "🚀 Хайп дня", "btn_signal_day": "🎯 Сигнал дня",
+        "btn_us_stocks": "🇺🇸 Акции США", "btn_ru_stocks": "🇷🇺 Акции РФ",
+        "btn_cn_stocks": "🇨🇳 Акции Китая", "btn_eu_stocks": "🇪🇺 Акции Европы",
         "btn_crypto_top": "🪙 Крипто-топ",
         "btn_price": "📊 Цена", "btn_stocks": "📋 Акции",
         "btn_gainers": "🚀 Рост", "btn_losers": "📉 Падение",
@@ -199,18 +186,13 @@ LANG = {
         "btn_help": "ℹ️ Помощь", "btn_lang": "🌐 Язык",
         "btn_crypto_price": "🪙 Курс", "btn_crypto_list": "📋 Список",
         "btn_crypto_potential": "🔮 Потенциал", "btn_back": "🔙 Назад",
-        "btn_tariff_30": "📅 30 дн. — 299₽",
-        "btn_tariff_90": "📅 90 дн. — 699₽",
+        "btn_tariff_30": "📅 30 дн. — 299₽", "btn_tariff_90": "📅 90 дн. — 699₽",
         "btn_tariff_365": "📅 365 дн. — 1999₽",
-        "btn_card_pay": "💳 Банковская карта (РФ)",
-        "btn_crypto_pay": "🪙 Криптовалюта (USDT)",
-        "btn_ton_pay": "💎 Telegram Wallet (TON)",
-        "btn_back_sub": "🔙 Назад",
-        "crypto_tariff_30": "🪙 30 дн. — 10 USDT",
-        "crypto_tariff_90": "🪙 90 дн. — 25 USDT",
+        "btn_card_pay": "💳 Банковская карта (РФ)", "btn_crypto_pay": "🪙 Криптовалюта (USDT)",
+        "btn_ton_pay": "💎 Telegram Wallet (TON)", "btn_back_sub": "🔙 Назад",
+        "crypto_tariff_30": "🪙 30 дн. — 10 USDT", "crypto_tariff_90": "🪙 90 дн. — 25 USDT",
         "crypto_tariff_365": "🪙 365 дн. — 70 USDT",
-        "ton_tariff_30": "💎 30 дн. — 10 TON",
-        "ton_tariff_90": "💎 90 дн. — 25 TON",
+        "ton_tariff_30": "💎 30 дн. — 10 TON", "ton_tariff_90": "💎 90 дн. — 25 TON",
         "ton_tariff_365": "💎 365 дн. — 70 TON",
         "tariff_30_card": "📅 *30 дней — 299₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 299₽ на карту\n2. Комментарий: *«Market Pulse 30 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
         "tariff_90_card": "📅 *90 дней — 699₽*\n\n💳 Карта: `{card}`\n\n⚠️ *Инструкция:*\n1. Переведите 699₽ на карту\n2. Комментарий: *«Market Pulse 90 дней»*\n3. Отправьте скриншот и ваш ID → {owner}\n\nВы получите чек от самозанятого.",
@@ -241,7 +223,7 @@ LANG = {
         "potential": "🔮 *Potential:*\n\n", "crypto_potential": "🔮 *Crypto Potential:*\n\n",
         "news": "📰 *News:*\n\n", "no_news": "😴 No movements.",
         "no_candidates": "🔮 No candidates.",
-        "help": "ℹ️ Market Pulse\n\n📊 Price | 🪙 Crypto | 📈 RSI | 📉 Chart\n🔔 Alerts | 👤 Profile | 🌐 Language | 💳 Subscribe",
+        "help": "ℹ️ Market Pulse\n\n/signal TICKER — AI signal with chart\n📊 Price | 🪙 Crypto | 📈 RSI | 📉 Chart\n🔔 Alerts | 👤 Profile | 🌐 Language | 💳 Subscribe",
         "enter_ticker": "Enter ticker:", "wrong_ticker": "❌ Invalid ticker",
         "use_buttons": "Use menu.", "main_menu": "Main menu",
         "crypto_menu": "🪙 Crypto", "searching_news": "📰 Searching...",
@@ -256,14 +238,12 @@ LANG = {
         "signal_of_day": "🎯 *Signal of the Day*\n\n",
         "top_market_title": "🔥 *Top Market*\n\nSelect section:",
         "bot_status": "📡 *Bot Status*\n\nStatus: {status}\nUptime: {uptime}\nLast ping: {ping} sec ago",
-        "btn_top_market": "🔥 Top Market",
-        "btn_market_summary": "📊 Market Summary",
-        "btn_hype_day": "🚀 Hype of Day",
-        "btn_signal_day": "🎯 Signal of Day",
-        "btn_us_stocks": "🇺🇸 US Stocks",
-        "btn_ru_stocks": "🇷🇺 Russian Stocks",
-        "btn_cn_stocks": "🇨🇳 China Stocks",
-        "btn_eu_stocks": "🇪🇺 Europe Stocks",
+        "ai_signal": "🤖 *AI Signal for {ticker}*\n\nPrice: ${price:.2f} {emoji}\n📊 RSI: {rsi}\n📈 MACD: {macd}\n📰 News: {news_count} items\n\n🧠 *DeepSeek AI:*\n{analysis}\n\n📉 [Open TradingView Chart]({link})",
+        "ai_analyzing": "🤖 Analyzing {ticker} with DeepSeek AI...\nBuilding chart...\nThis takes 10-15 seconds.",
+        "btn_top_market": "🔥 Top Market", "btn_market_summary": "📊 Market Summary",
+        "btn_hype_day": "🚀 Hype of Day", "btn_signal_day": "🎯 Signal of Day",
+        "btn_us_stocks": "🇺🇸 US Stocks", "btn_ru_stocks": "🇷🇺 Russian Stocks",
+        "btn_cn_stocks": "🇨🇳 China Stocks", "btn_eu_stocks": "🇪🇺 Europe Stocks",
         "btn_crypto_top": "🪙 Crypto Top",
         "btn_price": "📊 Price", "btn_stocks": "📋 Stocks",
         "btn_gainers": "🚀 Gainers", "btn_losers": "📉 Losers",
@@ -274,18 +254,13 @@ LANG = {
         "btn_help": "ℹ️ Help", "btn_lang": "🌐 Language",
         "btn_crypto_price": "🪙 Price", "btn_crypto_list": "📋 List",
         "btn_crypto_potential": "🔮 Potential", "btn_back": "🔙 Back",
-        "btn_tariff_30": "📅 30 d. — 299₽",
-        "btn_tariff_90": "📅 90 d. — 699₽",
+        "btn_tariff_30": "📅 30 d. — 299₽", "btn_tariff_90": "📅 90 d. — 699₽",
         "btn_tariff_365": "📅 365 d. — 1999₽",
-        "btn_card_pay": "💳 Bank Card (RF)",
-        "btn_crypto_pay": "🪙 Crypto (USDT)",
-        "btn_ton_pay": "💎 Telegram Wallet (TON)",
-        "btn_back_sub": "🔙 Back",
-        "crypto_tariff_30": "🪙 30 d. — 10 USDT",
-        "crypto_tariff_90": "🪙 90 d. — 25 USDT",
+        "btn_card_pay": "💳 Bank Card (RF)", "btn_crypto_pay": "🪙 Crypto (USDT)",
+        "btn_ton_pay": "💎 Telegram Wallet (TON)", "btn_back_sub": "🔙 Back",
+        "crypto_tariff_30": "🪙 30 d. — 10 USDT", "crypto_tariff_90": "🪙 90 d. — 25 USDT",
         "crypto_tariff_365": "🪙 365 d. — 70 USDT",
-        "ton_tariff_30": "💎 30 d. — 10 TON",
-        "ton_tariff_90": "💎 90 d. — 25 TON",
+        "ton_tariff_30": "💎 30 d. — 10 TON", "ton_tariff_90": "💎 90 d. — 25 TON",
         "ton_tariff_365": "💎 365 d. — 70 TON",
         "tariff_30_card": "📅 *30 days — 299₽*\n\n💳 Card: `{card}`\n\n⚠️ *Instructions:*\n1. Transfer 299₽ to the card\n2. Comment: *«Market Pulse 30 days»*\n3. Send screenshot + your ID → {owner}",
         "tariff_90_card": "📅 *90 days — 699₽*\n\n💳 Card: `{card}`\n\n⚠️ *Instructions:*\n1. Transfer 699₽ to the card\n2. Comment: *«Market Pulse 90 days»*\n3. Send screenshot + your ID → {owner}",
@@ -358,7 +333,7 @@ def extend_user(user_id, days):
 def get_price(ticker):
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
-        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "2d", "interval": "1d"}, timeout=5)
+        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "5d", "interval": "1d"}, timeout=5)
         data = r.json()["chart"]["result"][0]
         prices = data["indicators"]["quote"][0]["close"]
         current = data["meta"]["regularMarketPrice"]
@@ -367,6 +342,19 @@ def get_price(ticker):
     except Exception as e:
         log_error(f"get_price({ticker}): {traceback.format_exc()}")
         return None
+
+def get_price_history(ticker, days=30):
+    """Получает историю цен для графика."""
+    try:
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": f"{days}d", "interval": "1d"}, timeout=5)
+        data = r.json()["chart"]["result"][0]
+        timestamps = data["timestamp"]
+        closes = data["indicators"]["quote"][0]["close"]
+        dates = [datetime.fromtimestamp(ts) for ts in timestamps]
+        return dates, closes
+    except:
+        return [], []
 
 def get_crypto_price_coingecko(coin_id):
     try:
@@ -398,6 +386,22 @@ def get_rsi(ticker, period=14):
         log_error(f"get_rsi({ticker}): {traceback.format_exc()}")
         return 50
 
+def get_macd(ticker):
+    try:
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+        data = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": "3mo", "interval": "1d"}, timeout=5).json()
+        closes = data["chart"]["result"][0]["indicators"]["quote"][0]["close"]
+        closes = [c for c in closes if c is not None]
+        if len(closes) < 26: return "нет данных"
+        ema12 = sum(closes[-12:]) / 12
+        ema26 = sum(closes[-26:]) / 26
+        macd_line = ema12 - ema26
+        signal_line = (macd_line * 2) / 3
+        if macd_line > signal_line: return "↑ бычий"
+        else: return "↓ медвежий"
+    except:
+        return "нет данных"
+
 def get_news(ticker):
     try:
         data = requests.get(f"https://query1.finance.yahoo.com/v1/finance/search?q={ticker}", headers={"User-Agent": "Mozilla/5.0"}, timeout=5).json()
@@ -408,23 +412,123 @@ def get_chart_link(ticker):
     if ticker.endswith(".ME"): return f"https://www.tradingview.com/chart/?symbol=MOEX%3A{ticker.replace('.ME','')}"
     return f"https://www.tradingview.com/chart/?symbol=NASDAQ%3A{ticker}"
 
-# ─── КОМАНДА СТАТУСА (ДОСТУПНА ВСЕМ) ──────────────────
+# ─── ГЕНЕРАЦИЯ ГРАФИКА ──────────────────────────────────
+def generate_signal_chart(ticker, dates, closes, recommendation):
+    """Создаёт график с сигналом покупки/продажи."""
+    if not dates or not closes:
+        return None
+    
+    # Фильтруем None
+    valid = [(d, c) for d, c in zip(dates, closes) if c is not None]
+    if len(valid) < 5:
+        return None
+    
+    dates, closes = zip(*valid)
+    
+    plt.figure(figsize=(10, 5))
+    plt.plot(dates, closes, color='#38bdf8', linewidth=2, label=ticker)
+    
+    # Определяем цвет и стрелку
+    if "ПОКУПАТЬ" in recommendation.upper() or "BUY" in recommendation.upper():
+        color = '#22c55e'
+        arrow = '▲'
+        label = 'СИГНАЛ: ПОКУПАТЬ'
+    elif "ПРОДАВАТЬ" in recommendation.upper() or "SELL" in recommendation.upper():
+        color = '#ef4444'
+        arrow = '▼'
+        label = 'СИГНАЛ: ПРОДАВАТЬ'
+    else:
+        color = '#f59e0b'
+        arrow = '◆'
+        label = 'СИГНАЛ: ДЕРЖАТЬ'
+    
+    # Ставим отметку на последней точке
+    plt.scatter(dates[-1], closes[-1], color=color, s=200, marker='D', zorder=5, label=label)
+    plt.annotate(f'{arrow} {label}', (dates[-1], closes[-1]),
+                textcoords="offset points", xytext=(0, 20), ha='center',
+                fontsize=12, color=color, fontweight='bold')
+    
+    plt.title(f'Market Pulse — {ticker}', fontsize=14, color='#e2e8f0', pad=15)
+    plt.xlabel('Дата', color='#94a3b8')
+    plt.ylabel('Цена ($)', color='#94a3b8')
+    plt.grid(alpha=0.2, color='#94a3b8')
+    plt.legend()
+    
+    # Тёмная тема
+    plt.gca().set_facecolor('#0f172a')
+    plt.gcf().set_facecolor('#0f172a')
+    plt.gca().spines['bottom'].set_color('#334155')
+    plt.gca().spines['left'].set_color('#334155')
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d.%m'))
+    plt.gca().tick_params(colors='#94a3b8')
+    
+    plt.tight_layout()
+    
+    # Сохраняем в BytesIO
+    buf = BytesIO()
+    plt.savefig(buf, format='png', dpi=100, facecolor='#0f172a')
+    buf.seek(0)
+    plt.close()
+    return buf
+
+# ─── DEEPSEEK AI ────────────────────────────────────────
+def deepseek_analysis(ticker, price, rsi, macd, news_list):
+    """Отправляет данные в DeepSeek API и получает рекомендацию."""
+    if not DEEPSEEK_KEY:
+        return "⚠️ DeepSeek API не настроен. Добавьте DEEPSEEK_KEY в переменные окружения."
+    
+    news_text = ""
+    for n in news_list[:3]:
+        news_text += f"- {n.get('title', '')[:100]}\n"
+    
+    prompt = f"""Ты — финансовый аналитик. Дай краткую рекомендацию по активу {ticker}.
+
+Текущая цена: ${price:.2f}
+RSI (14): {rsi}
+MACD: {macd}
+Последние новости:
+{news_text if news_text else "Нет новостей"}
+
+Ответь строго в формате:
+РЕКОМЕНДАЦИЯ: [ПОКУПАТЬ / ПРОДАВАТЬ / ДЕРЖАТЬ]
+ПРИЧИНА: [1-2 предложения почему]
+РИСК: [низкий / средний / высокий]
+ГОРИЗОНТ: [краткосрочный / среднесрочный / долгосрочный]"""
+    
+    try:
+        r = requests.post(
+            "https://api.deepseek.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {DEEPSEEK_KEY}", "Content-Type": "application/json"},
+            json={
+                "model": "deepseek-chat",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 200,
+                "temperature": 0.3
+            },
+            timeout=20
+        )
+        data = r.json()
+        if "choices" in data:
+            return data["choices"][0]["message"]["content"].strip()
+        else:
+            log_error(f"DeepSeek API error: {json.dumps(data)}")
+            return "⚠️ Ошибка анализа. Попробуйте позже."
+    except Exception as e:
+        log_error(f"DeepSeek API exception: {traceback.format_exc()}")
+        return "⚠️ Сервис анализа временно недоступен."
+
+# ─── КОМАНДЫ ────────────────────────────────────────────
 @bot.message_handler(commands=['status'])
 def cmd_status(message):
-    """Показывает статус бота для всех пользователей."""
     lang = get_lang(message)
     status = get_bot_status()
-    text = lang["bot_status"].format(
-        status=status["status"],
-        uptime=status["uptime"],
-        ping=status["last_ping_seconds"]
-    )
+    text = lang["bot_status"].format(status=status["status"], uptime=status["uptime"], ping=status["last_ping_seconds"])
     bot.reply_to(message, text, parse_mode="Markdown")
 
-# ─── КОМАНДЫ ВЛАДЕЛЬЦА ──────────────────────────────────
 @bot.message_handler(commands=['ping'])
 def cmd_ping(message):
-    """Проверка работоспособности бота."""
     save_ping()
     status = get_bot_status()
     text = f"🟢 Понг!\nАптайм: {status['uptime']}\nПоследний пинг: {status['last_ping_seconds']} сек. назад"
@@ -432,7 +536,6 @@ def cmd_ping(message):
 
 @bot.message_handler(commands=['errors'])
 def cmd_errors(message):
-    """Показать последние ошибки."""
     if message.from_user.id != OWNER_ID: return
     try:
         if os.path.exists(ERROR_LOG_FILE):
@@ -495,6 +598,73 @@ def cmd_backup(message):
         shutil.copy("users.json", "backup_users.json")
         bot.reply_to(message, lang["backup_ok"])
     except: bot.reply_to(message, lang["backup_fail"])
+
+# ─── ИИ-СИГНАЛ С ГРАФИКОМ ──────────────────────────────
+@bot.message_handler(commands=['signal'])
+def cmd_signal(message):
+    if not is_allowed(message.from_user.id):
+        lang = get_lang(message)
+        bot.reply_to(message, lang["sub_expired"])
+        return
+    
+    lang = get_lang(message)
+    save_ping()
+    
+    try:
+        parts = message.text.split()
+        if len(parts) < 2:
+            bot.reply_to(message, "❌ Используйте: /signal AAPL")
+            return
+        
+        ticker = parts[1].upper()
+        
+        # Сообщение о начале анализа
+        status_msg = bot.reply_to(message, lang["ai_analyzing"].format(ticker=ticker), parse_mode="Markdown")
+        
+        # Собираем данные
+        d = get_price(ticker)
+        if d is None:
+            bot.edit_message_text("❌ Неверный тикер", message.chat.id, status_msg.message_id)
+            return
+        
+        rsi = get_rsi(ticker)
+        macd = get_macd(ticker)
+        news = get_news(ticker)
+        dates, closes = get_price_history(ticker, 30)
+        chart_link = get_chart_link(ticker)
+        
+        # Запрос к DeepSeek
+        analysis = deepseek_analysis(ticker, d["price"], rsi, macd, news)
+        
+        # Генерируем график
+        chart_buf = generate_signal_chart(ticker, dates, closes, analysis)
+        
+        # Формируем текст
+        emoji = "📈" if d["change"] >= 0 else "📉"
+        text = lang["ai_signal"].format(
+            ticker=ticker,
+            emoji=emoji,
+            price=d["price"],
+            rsi=rsi,
+            macd=macd,
+            news_count=len(news),
+            analysis=analysis,
+            link=chart_link
+        )
+        
+        # Отправляем
+        if chart_buf:
+            bot.delete_message(message.chat.id, status_msg.message_id)
+            bot.send_photo(message.chat.id, chart_buf, caption=text, parse_mode="Markdown")
+        else:
+            bot.edit_message_text(text, message.chat.id, status_msg.message_id, parse_mode="Markdown", disable_web_page_preview=True)
+    
+    except Exception as e:
+        log_error(f"cmd_signal: {traceback.format_exc()}")
+        try:
+            bot.edit_message_text("❌ Ошибка при анализе. Попробуйте позже.", message.chat.id, status_msg.message_id)
+        except:
+            bot.reply_to(message, "❌ Ошибка при анализе. Попробуйте позже.")
 
 # ─── СТАРТ ──────────────────────────────────────────────
 @bot.message_handler(commands=['start'])
