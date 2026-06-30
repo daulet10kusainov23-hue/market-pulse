@@ -10,43 +10,57 @@
             font-family: -apple-system, sans-serif;
             background: #0f172a;
             color: #e2e8f0;
-            padding: 20px;
+            padding: 16px;
             max-width: 400px;
             margin: 0 auto;
         }
         .header {
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
-        .header h1 { font-size: 22px; color: #38bdf8; }
-        .header p { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+        .header h1 { font-size: 20px; color: #38bdf8; }
+        .header p { font-size: 11px; color: #94a3b8; margin-top: 2px; }
         .card {
             background: #1e293b;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 10px;
+            border: 1px solid #334155;
         }
-        .card h2 { font-size: 16px; margin-bottom: 8px; color: #38bdf8; }
-        .card p { font-size: 14px; color: #94a3b8; }
+        .card h2 { font-size: 15px; margin-bottom: 6px; color: #38bdf8; }
+        .card p { font-size: 13px; color: #94a3b8; line-height: 1.4; }
         .menu {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 8px;
         }
         .btn {
             background: #1e293b;
             border: 1px solid #334155;
-            border-radius: 10px;
-            padding: 14px;
+            border-radius: 12px;
+            padding: 14px 10px;
             text-align: center;
             color: #e2e8f0;
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
             text-decoration: none;
             display: block;
+            transition: all 0.2s;
         }
-        .btn:active { background: #334155; }
-        .btn .icon { font-size: 24px; display: block; margin-bottom: 6px; }
+        .btn:active { 
+            background: #334155;
+            transform: scale(0.97);
+        }
+        .btn .icon { 
+            font-size: 26px; 
+            display: block; 
+            margin-bottom: 6px; 
+        }
+        .btn-primary {
+            background: #1e3a5f;
+            border-color: #38bdf8;
+            grid-column: span 2;
+        }
         .badge {
             background: #38bdf8;
             color: #0f172a;
@@ -55,50 +69,68 @@
             font-size: 11px;
             font-weight: bold;
         }
+        .footer {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 10px;
+            color: #475569;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>📊 Market Pulse</h1>
-        <p>Твой биржевой ассистент</p>
+        <p>Биржевой ассистент с ИИ</p>
     </div>
 
     <div class="card">
         <h2>👤 Профиль</h2>
-        <p>ID: загрузка...</p>
-        <p>Подписка: <span class="badge">Активна</span></p>
+        <p>ID: <span id="userId">загрузка...</span></p>
+        <p>Подписка: <span class="badge" id="subStatus">Активна</span></p>
     </div>
 
     <div class="menu">
-        <div class="btn" onclick="openBot()">
-            <span class="icon">💬</span>
-            Чат с ботом
+        <div class="btn btn-primary" onclick="openBot()">
+            <span class="icon">🤖</span>
+            ИИ-Сигнал
         </div>
-        <div class="btn" onclick="openSubscribe()">
-            <span class="icon">💳</span>
-            Подписка
+        <div class="btn" onclick="openBot()">
+            <span class="icon">📊</span>
+            Цена
+        </div>
+        <div class="btn" onclick="openBot()">
+            <span class="icon">🔥</span>
+            Топ рынка
         </div>
         <div class="btn" onclick="openChart()">
             <span class="icon">📈</span>
             Графики
         </div>
-        <div class="btn" onclick="openNews()">
-            <span class="icon">📰</span>
-            Новости
+        <div class="btn" onclick="openBot()">
+            <span class="icon">💳</span>
+            Подписка
         </div>
-        <div class="btn" onclick="openTop()">
-            <span class="icon">🔥</span>
-            Топ рынка
+        <div class="btn" onclick="openBot()">
+            <span class="icon">👤</span>
+            Профиль
         </div>
         <div class="btn" onclick="openHelp()">
             <span class="icon">ℹ️</span>
             Помощь
         </div>
+        <div class="btn" onclick="openNews()">
+            <span class="icon">📰</span>
+            Новости
+        </div>
     </div>
 
-    <div class="card" style="margin-top: 12px;">
-        <h2>💡 Совет дня</h2>
-        <p>Следи за RSI — значение ниже 30 сигнализирует о возможном росте актива.</p>
+    <div class="card" style="margin-top: 10px;">
+        <h2>💡 Совет</h2>
+        <p>Нажмите 🤖 ИИ-Сигнал — получите график с рекомендацией покупки/продажи от DeepSeek AI.</p>
+    </div>
+
+    <div class="footer">
+        Market Pulse © 2025 | @Kusainov10
     </div>
 
     <script>
@@ -107,23 +139,14 @@
         function openBot() {
             window.open(BOT_URL, "_blank");
         }
-        function openSubscribe() {
-            window.open(BOT_URL, "_blank");
-        }
         function openChart() {
             window.open("https://www.tradingview.com/chart/?symbol=NASDAQ%3AAAPL", "_blank");
         }
         function openNews() {
             window.open("https://finance.yahoo.com/", "_blank");
         }
-        function openTop() {
-            window.open(BOT_URL, "_blank");
-        }
         function openHelp() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                const app = window.Telegram.WebApp;
-                app.sendData("help");
-            }
+            window.open(BOT_URL, "_blank");
         }
 
         if (window.Telegram && window.Telegram.WebApp) {
@@ -132,6 +155,10 @@
             app.expand();
             app.setHeaderColor('#0f172a');
             app.setBackgroundColor('#0f172a');
+            
+            if (app.initDataUnsafe && app.initDataUnsafe.user) {
+                document.getElementById('userId').textContent = app.initDataUnsafe.user.id;
+            }
         }
     </script>
 </body>
