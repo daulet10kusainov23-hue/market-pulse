@@ -90,14 +90,6 @@ def auto_restart_check():
             last_ping = get_last_ping()
             if time.time() - last_ping > 300:
                 log_error("AUTO-RESTART: Бот не отвечает более 5 минут.")
-                try:
-                    bot.send_message(OWNER_ID, "⚠️ Бот не отвечает более 5 минут.")
-                except:
-                    pass
-                try:
-                    os.execv(sys.executable, [sys.executable] + sys.argv)
-                except:
-                    pass
         except:
             pass
 
@@ -339,12 +331,10 @@ def get_price(ticker):
         current = data["meta"]["regularMarketPrice"]
         prev = prices[-2] if len(prices) >= 2 and prices[-2] else current
         return {"price": current, "change": ((current - prev) / prev) * 100 if prev else 0}
-    except Exception as e:
-        log_error(f"get_price({ticker}): {traceback.format_exc()}")
+    except:
         return None
 
 def get_price_history(ticker, days=30):
-    """Получает историю цен для графика."""
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
         r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, params={"range": f"{days}d", "interval": "1d"}, timeout=5)
@@ -362,8 +352,7 @@ def get_crypto_price_coingecko(coin_id):
         r = requests.get(url, timeout=5).json()
         data = r[coin_id]
         return {"price": data["usd"], "change": data["usd_24h_change"]}
-    except Exception as e:
-        log_error(f"get_crypto_price({coin_id}): {traceback.format_exc()}")
+    except:
         return None
 
 def get_rsi(ticker, period=14):
@@ -382,8 +371,7 @@ def get_rsi(ticker, period=14):
         avg_loss = sum(losses[-period:]) / period
         if avg_loss == 0: return 100
         return round(100 - (100 / (1 + avg_gain / avg_loss)), 1)
-    except Exception as e:
-        log_error(f"get_rsi({ticker}): {traceback.format_exc()}")
+    except:
         return 50
 
 def get_macd(ticker):
@@ -414,35 +402,23 @@ def get_chart_link(ticker):
 
 # ─── ГЕНЕРАЦИЯ ГРАФИКА ──────────────────────────────────
 def generate_signal_chart(ticker, dates, closes, recommendation):
-    """Создаёт график с сигналом покупки/продажи."""
     if not dates or not closes:
         return None
-    
-    # Фильтруем None
     valid = [(d, c) for d, c in zip(dates, closes) if c is not None]
     if len(valid) < 5:
         return None
-    
     dates, closes = zip(*valid)
     
     plt.figure(figsize=(10, 5))
     plt.plot(dates, closes, color='#38bdf8', linewidth=2, label=ticker)
     
-    # Определяем цвет и стрелку
     if "ПОКУПАТЬ" in recommendation.upper() or "BUY" in recommendation.upper():
-        color = '#22c55e'
-        arrow = '▲'
-        label = 'СИГНАЛ: ПОКУПАТЬ'
+        color = '#22c55e'; arrow = '▲'; label = 'СИГНАЛ: ПОКУПАТЬ'
     elif "ПРОДАВАТЬ" in recommendation.upper() or "SELL" in recommendation.upper():
-        color = '#ef4444'
-        arrow = '▼'
-        label = 'СИГНАЛ: ПРОДАВАТЬ'
+        color = '#ef4444'; arrow = '▼'; label = 'СИГНАЛ: ПРОДАВАТЬ'
     else:
-        color = '#f59e0b'
-        arrow = '◆'
-        label = 'СИГНАЛ: ДЕРЖАТЬ'
+        color = '#f59e0b'; arrow = '◆'; label = 'СИГНАЛ: ДЕРЖАТЬ'
     
-    # Ставим отметку на последней точке
     plt.scatter(dates[-1], closes[-1], color=color, s=200, marker='D', zorder=5, label=label)
     plt.annotate(f'{arrow} {label}', (dates[-1], closes[-1]),
                 textcoords="offset points", xytext=(0, 20), ha='center',
@@ -454,7 +430,6 @@ def generate_signal_chart(ticker, dates, closes, recommendation):
     plt.grid(alpha=0.2, color='#94a3b8')
     plt.legend()
     
-    # Тёмная тема
     plt.gca().set_facecolor('#0f172a')
     plt.gcf().set_facecolor('#0f172a')
     plt.gca().spines['bottom'].set_color('#334155')
@@ -465,8 +440,6 @@ def generate_signal_chart(ticker, dates, closes, recommendation):
     plt.gca().tick_params(colors='#94a3b8')
     
     plt.tight_layout()
-    
-    # Сохраняем в BytesIO
     buf = BytesIO()
     plt.savefig(buf, format='png', dpi=100, facecolor='#0f172a')
     buf.seek(0)
@@ -475,25 +448,20 @@ def generate_signal_chart(ticker, dates, closes, recommendation):
 
 # ─── DEEPSEEK AI ────────────────────────────────────────
 def deepseek_analysis(ticker, price, rsi, macd, news_list):
-    """Отправляет данные в DeepSeek API и получает рекомендацию."""
     if not DEEPSEEK_KEY:
-        return "⚠️ DeepSeek API не настроен. Добавьте DEEPSEEK_KEY в переменные окружения."
-    
+        return "⚠️ DeepSeek API не настроен."
     news_text = ""
     for n in news_list[:3]:
         news_text += f"- {n.get('title', '')[:100]}\n"
     
     prompt = f"""Ты — финансовый аналитик. Дай краткую рекомендацию по активу {ticker}.
-
 Текущая цена: ${price:.2f}
 RSI (14): {rsi}
 MACD: {macd}
-Последние новости:
-{news_text if news_text else "Нет новостей"}
-
+Новости: {news_text if news_text else "Нет"}
 Ответь строго в формате:
 РЕКОМЕНДАЦИЯ: [ПОКУПАТЬ / ПРОДАВАТЬ / ДЕРЖАТЬ]
-ПРИЧИНА: [1-2 предложения почему]
+ПРИЧИНА: [1-2 предложения]
 РИСК: [низкий / средний / высокий]
 ГОРИЗОНТ: [краткосрочный / среднесрочный / долгосрочный]"""
     
@@ -501,23 +469,15 @@ MACD: {macd}
         r = requests.post(
             "https://api.deepseek.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {DEEPSEEK_KEY}", "Content-Type": "application/json"},
-            json={
-                "model": "deepseek-chat",
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 200,
-                "temperature": 0.3
-            },
+            json={"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}], "max_tokens": 200, "temperature": 0.3},
             timeout=20
         )
         data = r.json()
         if "choices" in data:
             return data["choices"][0]["message"]["content"].strip()
-        else:
-            log_error(f"DeepSeek API error: {json.dumps(data)}")
-            return "⚠️ Ошибка анализа. Попробуйте позже."
-    except Exception as e:
-        log_error(f"DeepSeek API exception: {traceback.format_exc()}")
-        return "⚠️ Сервис анализа временно недоступен."
+        return "⚠️ Ошибка анализа."
+    except:
+        return "⚠️ Сервис временно недоступен."
 
 # ─── КОМАНДЫ ────────────────────────────────────────────
 @bot.message_handler(commands=['status'])
@@ -531,25 +491,7 @@ def cmd_status(message):
 def cmd_ping(message):
     save_ping()
     status = get_bot_status()
-    text = f"🟢 Понг!\nАптайм: {status['uptime']}\nПоследний пинг: {status['last_ping_seconds']} сек. назад"
-    bot.reply_to(message, text)
-
-@bot.message_handler(commands=['errors'])
-def cmd_errors(message):
-    if message.from_user.id != OWNER_ID: return
-    try:
-        if os.path.exists(ERROR_LOG_FILE):
-            with open(ERROR_LOG_FILE) as f:
-                lines = f.readlines()[-20:]
-            if lines:
-                text = "📋 *Последние ошибки:*\n\n" + "".join(f"• {l}" for l in lines[-10:])
-                bot.reply_to(message, text[:4000], parse_mode="Markdown")
-            else:
-                bot.reply_to(message, "✅ Ошибок нет")
-        else:
-            bot.reply_to(message, "✅ Ошибок нет")
-    except:
-        bot.reply_to(message, "Не удалось прочитать лог")
+    bot.reply_to(message, f"🟢 Понг!\nАптайм: {status['uptime']}")
 
 @bot.message_handler(commands=['activate'])
 def cmd_activate(message):
@@ -599,72 +541,46 @@ def cmd_backup(message):
         bot.reply_to(message, lang["backup_ok"])
     except: bot.reply_to(message, lang["backup_fail"])
 
-# ─── ИИ-СИГНАЛ С ГРАФИКОМ ──────────────────────────────
+# ─── ИИ-СИГНАЛ ──────────────────────────────────────────
 @bot.message_handler(commands=['signal'])
 def cmd_signal(message):
     if not is_allowed(message.from_user.id):
         lang = get_lang(message)
         bot.reply_to(message, lang["sub_expired"])
         return
-    
     lang = get_lang(message)
     save_ping()
-    
     try:
         parts = message.text.split()
         if len(parts) < 2:
-            bot.reply_to(message, "❌ Используйте: /signal AAPL")
+            bot.reply_to(message, "❌ /signal AAPL")
             return
-        
         ticker = parts[1].upper()
-        
-        # Сообщение о начале анализа
         status_msg = bot.reply_to(message, lang["ai_analyzing"].format(ticker=ticker), parse_mode="Markdown")
-        
-        # Собираем данные
         d = get_price(ticker)
         if d is None:
             bot.edit_message_text("❌ Неверный тикер", message.chat.id, status_msg.message_id)
             return
-        
         rsi = get_rsi(ticker)
         macd = get_macd(ticker)
         news = get_news(ticker)
         dates, closes = get_price_history(ticker, 30)
         chart_link = get_chart_link(ticker)
-        
-        # Запрос к DeepSeek
         analysis = deepseek_analysis(ticker, d["price"], rsi, macd, news)
-        
-        # Генерируем график
         chart_buf = generate_signal_chart(ticker, dates, closes, analysis)
-        
-        # Формируем текст
         emoji = "📈" if d["change"] >= 0 else "📉"
-        text = lang["ai_signal"].format(
-            ticker=ticker,
-            emoji=emoji,
-            price=d["price"],
-            rsi=rsi,
-            macd=macd,
-            news_count=len(news),
-            analysis=analysis,
-            link=chart_link
-        )
-        
-        # Отправляем
+        text = lang["ai_signal"].format(ticker=ticker, emoji=emoji, price=d["price"], rsi=rsi, macd=macd, news_count=len(news), analysis=analysis, link=chart_link)
         if chart_buf:
             bot.delete_message(message.chat.id, status_msg.message_id)
             bot.send_photo(message.chat.id, chart_buf, caption=text, parse_mode="Markdown")
         else:
             bot.edit_message_text(text, message.chat.id, status_msg.message_id, parse_mode="Markdown", disable_web_page_preview=True)
-    
     except Exception as e:
-        log_error(f"cmd_signal: {traceback.format_exc()}")
+        log_error(f"signal: {traceback.format_exc()}")
         try:
-            bot.edit_message_text("❌ Ошибка при анализе. Попробуйте позже.", message.chat.id, status_msg.message_id)
+            bot.edit_message_text("❌ Ошибка анализа", message.chat.id, status_msg.message_id)
         except:
-            bot.reply_to(message, "❌ Ошибка при анализе. Попробуйте позже.")
+            bot.reply_to(message, "❌ Ошибка анализа")
 
 # ─── СТАРТ ──────────────────────────────────────────────
 @bot.message_handler(commands=['start'])
@@ -673,34 +589,30 @@ def send_welcome(message):
     save_ping()
     args = message.text.split()
     is_invite = len(args) > 1 and args[1] == "invite"
-    
     existing = get_user_lang(uid)
     if not existing:
         bot.send_message(uid, "🌐 Выберите язык / Choose language:", reply_markup=lang_menu())
         if is_invite: register_user(uid)
         return
-    
     lang = existing
     if is_invite:
         is_new = register_user(uid)
     else:
         is_new = False
-    
     if not is_allowed(uid):
         bot.send_message(uid, lang["welcome_no_access"].format(owner=OWNER_USERNAME), parse_mode="Markdown")
         return
-    
     days = days_left(uid)
     if is_new and is_invite:
         text = lang["welcome_trial"].format(name=message.from_user.first_name, days=FREE_DAYS)
     else:
         text = lang["welcome_back"].format(name=message.from_user.first_name, days=days, lang_name=lang["name"])
-    
     bot.send_message(uid, text, parse_mode="Markdown", reply_markup=main_menu(lang))
 
 def main_menu(lang):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
+        types.KeyboardButton("🤖 ИИ-Сигнал"),
         types.KeyboardButton(lang["btn_top_market"]), types.KeyboardButton(lang["btn_stocks"]),
         types.KeyboardButton(lang["btn_gainers"]), types.KeyboardButton(lang["btn_losers"]),
         types.KeyboardButton(lang["btn_potential"]), types.KeyboardButton(lang["btn_news"]),
@@ -714,14 +626,10 @@ def main_menu(lang):
 def top_market_menu(lang):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
-        types.KeyboardButton(lang["btn_market_summary"]),
-        types.KeyboardButton(lang["btn_hype_day"]),
-        types.KeyboardButton(lang["btn_signal_day"]),
-        types.KeyboardButton(lang["btn_us_stocks"]),
-        types.KeyboardButton(lang["btn_ru_stocks"]),
-        types.KeyboardButton(lang["btn_cn_stocks"]),
-        types.KeyboardButton(lang["btn_eu_stocks"]),
-        types.KeyboardButton(lang["btn_crypto_top"]),
+        types.KeyboardButton(lang["btn_market_summary"]), types.KeyboardButton(lang["btn_hype_day"]),
+        types.KeyboardButton(lang["btn_signal_day"]), types.KeyboardButton(lang["btn_us_stocks"]),
+        types.KeyboardButton(lang["btn_ru_stocks"]), types.KeyboardButton(lang["btn_cn_stocks"]),
+        types.KeyboardButton(lang["btn_eu_stocks"]), types.KeyboardButton(lang["btn_crypto_top"]),
         types.KeyboardButton(lang["btn_back"])
     )
     return markup
@@ -742,7 +650,6 @@ def callback_lang(call):
     lang = LANG[code]
     bot.answer_callback_query(call.id, lang["lang_set"])
     bot.delete_message(uid, call.message.message_id)
-    
     if is_allowed(uid):
         days = days_left(uid)
         text = lang["welcome_back"].format(name=call.from_user.first_name, days=days, lang_name=lang["name"])
@@ -867,6 +774,11 @@ def handle_buttons(message):
     
     t = message.text
     
+    if t == "🤖 ИИ-Сигнал":
+        msg = bot.reply_to(message, "Введи тикер для ИИ-анализа (например, AAPL):", reply_markup=types.ForceReply(selective=True))
+        bot.register_next_step_handler(msg, lambda m: process_signal_button(m, lang))
+        return
+    
     if t == lang["btn_top_market"]:
         bot.send_message(uid, lang["top_market_title"], parse_mode="Markdown", reply_markup=top_market_menu(lang))
     elif t == lang["btn_stocks"]: show_watchlist(message, lang)
@@ -925,58 +837,62 @@ def handle_buttons(message):
             bot.send_message(uid, lang["price"].format(name=tick, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
         except: bot.reply_to(message, lang["use_buttons"], reply_markup=main_menu(lang))
 
+def process_signal_button(message, lang):
+    try:
+        ticker = message.text.upper()
+        d = get_price(ticker)
+        if d is None:
+            bot.reply_to(message, "❌ Неверный тикер", reply_markup=main_menu(lang))
+            return
+        status_msg = bot.reply_to(message, lang["ai_analyzing"].format(ticker=ticker), parse_mode="Markdown")
+        rsi = get_rsi(ticker)
+        macd = get_macd(ticker)
+        news = get_news(ticker)
+        dates, closes = get_price_history(ticker, 30)
+        chart_link = get_chart_link(ticker)
+        analysis = deepseek_analysis(ticker, d["price"], rsi, macd, news)
+        chart_buf = generate_signal_chart(ticker, dates, closes, analysis)
+        emoji = "📈" if d["change"] >= 0 else "📉"
+        text = lang["ai_signal"].format(ticker=ticker, emoji=emoji, price=d["price"], rsi=rsi, macd=macd, news_count=len(news), analysis=analysis, link=chart_link)
+        if chart_buf:
+            bot.delete_message(message.chat.id, status_msg.message_id)
+            bot.send_photo(message.chat.id, chart_buf, caption=text, parse_mode="Markdown")
+        else:
+            bot.edit_message_text(text, message.chat.id, status_msg.message_id, parse_mode="Markdown", disable_web_page_preview=True)
+    except:
+        bot.reply_to(message, "❌ Ошибка при анализе.", reply_markup=main_menu(lang))
+
 # ─── ТОП РЫНКА ──────────────────────────────────────────
 def show_market_summary(message, lang):
     text = lang["market_summary"]
     for name, ticker in INDICES.items():
         d = get_price(ticker)
-        if d:
-            e = "📈" if d["change"]>=0 else "📉"
-            text += f"{name}: ${d['price']:.2f} {e} {d['change']:+.2f}%\n"
-        else:
-            text += f"{name}: ❌\n"
+        if d: text += f"{name}: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n"
+        else: text += f"{name}: ❌\n"
     text += "━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
 
 def show_hype_of_day(message, lang):
-    try:
-        best = None
-        best_change = 0
-        all_stocks = list(US_STOCKS.values())
-        for ticker in all_stocks[:10]:
-            d = get_price(ticker)
-            if d and abs(d["change"]) > abs(best_change):
-                best_change = d["change"]
-                best = {"name": ticker, "price": d["price"], "change": d["change"]}
-        
-        if best:
-            e = "📈" if best["change"]>=0 else "📉"
-            text = lang["hype_of_day"] + f"*{best['name']}*\n💰 ${best['price']:.2f} {e} {best['change']:+.2f}%\n🔥 Самое сильное движение сегодня"
-        else:
-            text = lang["hype_of_day"] + "Рынок спокоен. Нет резких движений."
-    except:
-        text = lang["hype_of_day"] + "Ошибка загрузки."
+    best = None; best_change = 0
+    for ticker in list(US_STOCKS.values())[:10]:
+        d = get_price(ticker)
+        if d and abs(d["change"]) > abs(best_change): best_change = d["change"]; best = {"name": ticker, "price": d["price"], "change": d["change"]}
+    if best:
+        e = "📈" if best["change"]>=0 else "📉"
+        text = lang["hype_of_day"] + f"*{best['name']}*\n💰 ${best['price']:.2f} {e} {best['change']:+.2f}%"
+    else: text = lang["hype_of_day"] + "Рынок спокоен."
     text += "\n━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
 
 def show_signal_of_day(message, lang):
-    try:
-        best = None
-        best_rsi = 100
-        for ticker in WATCHLIST:
-            rsi = get_rsi(ticker)
-            d = get_price(ticker)
-            if d and rsi < best_rsi:
-                best_rsi = rsi
-                best = {"name": ticker, "price": d["price"], "change": d["change"], "rsi": rsi}
-        
-        if best:
-            s = "🟢" if best["rsi"]<=30 else "🟡"
-            text = lang["signal_of_day"] + f"*{best['name']}*\n💰 ${best['price']:.2f}\n📊 RSI: *{best['rsi']}* {s}\n\n_RSI ниже 30 — сигнал к покупке_"
-        else:
-            text = lang["signal_of_day"] + "Нет данных."
-    except:
-        text = lang["signal_of_day"] + "Ошибка загрузки."
+    best = None; best_rsi = 100
+    for ticker in WATCHLIST:
+        rsi = get_rsi(ticker); d = get_price(ticker)
+        if d and rsi < best_rsi: best_rsi = rsi; best = {"name": ticker, "price": d["price"], "rsi": rsi}
+    if best:
+        s = "🟢" if best["rsi"]<=30 else "🟡"
+        text = lang["signal_of_day"] + f"*{best['name']}*\n💰 ${best['price']:.2f}\n📊 RSI: *{best['rsi']}* {s}"
+    else: text = lang["signal_of_day"] + "Нет данных."
     text += "\n━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
 
@@ -984,18 +900,14 @@ def show_stock_group(message, lang, stock_dict, title):
     text = f"*{title}*\n\n"
     for name, ticker in stock_dict.items():
         d = get_price(ticker)
-        if d:
-            e = "📈" if d["change"]>=0 else "📉"
-            text += f"{name}: ${d['price']:.2f} {e} {d['change']:+.2f}%\n"
-        else:
-            text += f"{name}: ❌\n"
+        if d: text += f"{name}: ${d['price']:.2f} {'📈' if d['change']>=0 else '📉'} {d['change']:+.2f}%\n"
+        else: text += f"{name}: ❌\n"
     text += "━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang))
 
 def show_links_group(message, lang, links_dict, title):
-    text = f"*{title}*\n\nНажмите на ссылку для открытия графика TradingView:\n\n"
-    for name, link in links_dict.items():
-        text += f"{name}: [📊 График]({link})\n"
+    text = f"*{title}*\n\nНажмите на ссылку для открытия графика:\n\n"
+    for name, link in links_dict.items(): text += f"{name}: [📊 График]({link})\n"
     text += "\n━━━━━━━━━━━━━━━"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=top_market_menu(lang), disable_web_page_preview=True)
 
@@ -1004,67 +916,43 @@ def show_payment_options(message, lang):
     days = days_left(message.from_user.id)
     text = lang["subscription_info"].format(days=days)
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    markup.add(
-        types.KeyboardButton(lang["btn_card_pay"]),
-        types.KeyboardButton(lang["btn_crypto_pay"]),
-        types.KeyboardButton(lang["btn_ton_pay"]),
-        types.KeyboardButton(lang["btn_back_sub"])
-    )
+    markup.add(types.KeyboardButton(lang["btn_card_pay"]), types.KeyboardButton(lang["btn_crypto_pay"]), types.KeyboardButton(lang["btn_ton_pay"]), types.KeyboardButton(lang["btn_back_sub"]))
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=markup)
 
 def show_card_tariffs(message, lang):
     text = "💳 *Оплата картой (РФ)*\n\nВыберите тариф:"
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    markup.add(
-        types.KeyboardButton(lang["btn_tariff_30"]),
-        types.KeyboardButton(lang["btn_tariff_90"]),
-        types.KeyboardButton(lang["btn_tariff_365"]),
-        types.KeyboardButton(lang["btn_back_sub"])
-    )
+    markup.add(types.KeyboardButton(lang["btn_tariff_30"]), types.KeyboardButton(lang["btn_tariff_90"]), types.KeyboardButton(lang["btn_tariff_365"]), types.KeyboardButton(lang["btn_back_sub"]))
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=markup)
 
 def show_usdt_tariffs(message, lang):
     text = "🪙 *Оплата USDT (ERC-20)*\n\nВыберите тариф:"
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    markup.add(
-        types.KeyboardButton(lang["crypto_tariff_30"]),
-        types.KeyboardButton(lang["crypto_tariff_90"]),
-        types.KeyboardButton(lang["crypto_tariff_365"]),
-        types.KeyboardButton(lang["btn_back_sub"])
-    )
+    markup.add(types.KeyboardButton(lang["crypto_tariff_30"]), types.KeyboardButton(lang["crypto_tariff_90"]), types.KeyboardButton(lang["crypto_tariff_365"]), types.KeyboardButton(lang["btn_back_sub"]))
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=markup)
 
 def show_ton_tariffs(message, lang):
     text = "💎 *Оплата Telegram Wallet (TON)*\n\nВыберите тариф:"
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    markup.add(
-        types.KeyboardButton(lang["ton_tariff_30"]),
-        types.KeyboardButton(lang["ton_tariff_90"]),
-        types.KeyboardButton(lang["ton_tariff_365"]),
-        types.KeyboardButton(lang["btn_back_sub"])
-    )
+    markup.add(types.KeyboardButton(lang["ton_tariff_30"]), types.KeyboardButton(lang["ton_tariff_90"]), types.KeyboardButton(lang["ton_tariff_365"]), types.KeyboardButton(lang["btn_back_sub"]))
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=markup)
 
 def show_tariff_card(message, lang, days, price):
     key = f"tariff_{days}_card"
-    text = lang[key].format(card=CARD_NUMBER, owner=OWNER_USERNAME)
-    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
+    bot.send_message(message.chat.id, lang[key].format(card=CARD_NUMBER, owner=OWNER_USERNAME), parse_mode="Markdown", reply_markup=main_menu(lang))
 
 def show_tariff_usdt(message, lang, days, amount):
     key = f"tariff_{days}_usdt"
-    text = lang[key].format(usdt=USDT_ADDRESS, owner=OWNER_USERNAME)
-    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
+    bot.send_message(message.chat.id, lang[key].format(usdt=USDT_ADDRESS, owner=OWNER_USERNAME), parse_mode="Markdown", reply_markup=main_menu(lang))
 
 def show_tariff_ton(message, lang, days, amount):
     key = f"tariff_{days}_ton"
-    text = lang[key].format(ton=TON_ADDRESS, owner=OWNER_USERNAME)
-    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu(lang))
+    bot.send_message(message.chat.id, lang[key].format(ton=TON_ADDRESS, owner=OWNER_USERNAME), parse_mode="Markdown", reply_markup=main_menu(lang))
 
 # ─── ОБРАБОТЧИКИ ────────────────────────────────────────
 def process_ticker(message, lang):
     try:
-        t = message.text.upper()
-        d = get_price(t)
+        t = message.text.upper(); d = get_price(t)
         if d is None: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang)); return
         e = "📈" if d["change"]>=0 else "📉"
         bot.send_message(message.chat.id, lang["price"].format(name=t, price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=main_menu(lang))
@@ -1072,8 +960,7 @@ def process_ticker(message, lang):
 
 def process_crypto_ticker(message, lang):
     try:
-        t = message.text.lower()
-        d = get_crypto_price_coingecko(t)
+        t = message.text.lower(); d = get_crypto_price_coingecko(t)
         if d is None: bot.reply_to(message, lang["wrong_ticker"], reply_markup=crypto_menu(lang)); return
         e = "📈" if d["change"]>=0 else "📉"
         bot.send_message(message.chat.id, lang["price"].format(name=t.upper(), price=d["price"], emoji=e, change=d["change"]), parse_mode="Markdown", reply_markup=crypto_menu(lang))
@@ -1081,18 +968,15 @@ def process_crypto_ticker(message, lang):
 
 def process_rsi(message, lang):
     try:
-        t = message.text.upper()
-        d = get_price(t)
+        t = message.text.upper(); d = get_price(t)
         if d is None: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang)); return
-        r = get_rsi(t)
-        s = "🔴" if r>=70 else "🟢" if r<=30 else "⚪" if 40<=r<=60 else "🟠" if r>60 else "🟡"
+        r = get_rsi(t); s = "🔴" if r>=70 else "🟢" if r<=30 else "⚪" if 40<=r<=60 else "🟠" if r>60 else "🟡"
         bot.send_message(message.chat.id, lang["rsi"].format(ticker=t, price=d["price"], rsi=r, signal=s), parse_mode="Markdown", reply_markup=main_menu(lang))
     except: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang))
 
 def process_chart(message, lang):
     try:
-        t = message.text.upper()
-        d = get_price(t); l = get_chart_link(t)
+        t = message.text.upper(); d = get_price(t); l = get_chart_link(t)
         if d is None: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang)); return
         bot.send_message(message.chat.id, lang["chart"].format(ticker=t, price=d["price"], link=l), parse_mode="Markdown", reply_markup=main_menu(lang), disable_web_page_preview=False)
     except: bot.reply_to(message, lang["wrong_ticker"], reply_markup=main_menu(lang))
